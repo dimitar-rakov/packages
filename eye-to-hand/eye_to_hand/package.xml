@@ -1,0 +1,22 @@
+<package>
+  <name>eye_to_hand</name>
+  <version>0.0.1</version>
+  <description>
+    ROS meta-package containing eye_to_hand packages.
+  </description>
+  <maintainer email="dimitar.rakov@tum.de">Dimitar Rakov</maintainer>
+  <license>BSD</license>
+  
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <!-- PACKAGES -->
+
+  <run_depend>kinect2_viewer</run_depend>
+  <run_depend>kinect2_bridge</run_depend>
+  <run_depend>obstacle_detector</run_depend>	
+    <!--<run_depend>kinect2_registration</run_depend> -->
+
+  <export>
+    <metapackage/>
+  </export>
+</package>

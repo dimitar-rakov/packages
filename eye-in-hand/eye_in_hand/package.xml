@@ -1,0 +1,25 @@
+<package>
+  <name>eye_in_hand</name>
+  <version>0.0.1</version>
+  <description>
+    ROS meta-package containing eye_in_hand packages.
+  </description>
+  <maintainer email="dimitar.rakov@tum.de">Dimitar Rakov</maintainer>
+  <license>BSD</license>
+  
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <!-- PACKAGES -->
+  <!-- usb_cam Authors: [Benjamin Pitzer] (benjamin.pitzer@bosch.com), Contributors: [Russell Toris](http://users.wpi.edu/~rctoris/) (rctoris@wpi.edu) -->
+  <!-- package at https://github.com/bosch-ros-pkg/usb_cam -->
+
+  <!-- usb camera drivers -->
+  <run_depend> usb_node </run_depend>
+
+  <!-- visual feature extractor -->
+  <run_depend> vis_feature_extract </run_depend>
+
+  <export>
+    <metapackage/>
+  </export>
+</package>

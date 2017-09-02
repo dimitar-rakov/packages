@@ -1,0 +1,9 @@
+<launch>
+
+    <!-- set the parameters for the points topics -->
+    <arg name="points_topic_sensor_1" default="/kinect2_k1/sd/points"/>
+    <arg name="points_topic_sensor_2" default="/kinect2_k2/sd/points"/>
+
+    <include file="$(find kinect2_bridge)/launch/kinect2_bridge_k1.launch"/>
+    <include file="$(find kinect2_bridge)/launch/kinect2_bridge_k2.launch"/>
+</launch>

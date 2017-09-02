@@ -1,0 +1,25 @@
+<launch>
+  <node name="usb_cam" pkg="usb_cam" type="usb_cam_node" output="screen" >
+    <param name="video_device" value="/dev/video0" />
+    <param name="image_width" value="640" />
+    <param name="image_height" value="480" />
+    <param name="pixel_format" value="yuyv" />
+    <param name="camera_frame_id" value="usb_cam" />
+    <param name="io_method" value="mmap"/>
+  </node>
+ <!--  <node name="image_view" pkg="image_view" type="image_view" respawn="false" output="screen"> -->
+ <!--    <remap from="image" to="/usb_cam/image_raw"/> -->
+ <!--    <param name="autosize" value="true" /> -->
+ <!--  </node> -->
+
+  <node name="vis_feature_extract" pkg="vis_feature_extract" type="vis_feature_extract_node" respawn="false" output="screen">
+    <param name="sim_features" value="true" />
+    <param name="extended_features" value="false" />
+  </node>
+
+  <node pkg="tf2_ros" type="static_transform_publisher" name="cam_to_end_eff" args="0.000 0.000 0.095 0.000 0.000 0.707106781 0.707106781 lwr_a6_link eye_in_hand " />
+
+
+
+
+</launch>
