@@ -1,6 +1,6 @@
 # KUKA LWR CONTROLLERS
 
-ROS/indigo image moments based visual serving with obstacel avoidance implemented for the LWR 4
+ROS/indigo image moments based visual servoing with obstacles avoidance implemented for the LWR 4
 
 ## Overview
 
