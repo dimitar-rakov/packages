@@ -183,12 +183,12 @@
     <xacro:property name="robot_origin_x" value="${panel_origin_x}" />
     <xacro:property name="robot_origin_y" value="${panel_origin_y - panel_size_y/2}" />
     <xacro:property name="robot_origin_z" value="${panel_origin_z}" />
-    <xacro:property name="robotOriginR" value="${PI/2}" />
-    <xacro:property name="robotOriginP" value="${-PI/2}" />
+    <xacro:property name="robot_origin_roll" value="${PI/2}" />
+    <xacro:property name="robot_origin_pitch" value="${-PI/2}" />
     <xacro:property name="robot_origin_yaw" value="0" />
 
     <xacro:kuka_lwr parent="panel" name="lwr">
-        <origin xyz="${robot_origin_x} ${robot_origin_y} ${robot_origin_z}" rpy="${robotOriginR} ${robotOriginP} ${robot_origin_yaw}"/>
+        <origin xyz="${robot_origin_x} ${robot_origin_y} ${robot_origin_z}" rpy="${robot_origin_roll} ${robot_origin_pitch} ${robot_origin_yaw}"/>
     </xacro:kuka_lwr>
 
 </robot>

@@ -1,0 +1,30 @@
+<launch>
+
+    <!-- set the parameters for the points topics -->
+    <arg name="base_name"               default="kinect_fusion"/>
+    <arg name="raw_images_topics"       default="[/kinect2_k1/hd/image_color, /kinect2_k2/hd/image_color]"/>
+    <arg name="cameras_info_topics"     default="[/kinect2_k1/hd/camera_info, /kinect2_k2/hd/camera_info]"/>
+    <arg name="points_topics"           default="[/kinect2_k1/sd/points, /kinect2_k2/sd/points]"/>
+    <arg name="using_aruco"             default="false"/>
+
+    <!-- set the transformation between ir and world frames. Additonal adjusted -->
+<!--    <node pkg="tf2_ros" type="static_transform_publisher" name="ir1_wrt_world" args="1.508428, 1.890033, 1.931042, 0.341766, 0.757794, -0.507847, -0.225911 world kinect2_k1_ir_optical_frame" />
+    <node pkg="tf2_ros" type="static_transform_publisher" name="ir2_wrt_world" args="-1.557903, 1.708102, 1.908507 -0.297836, 0.772056, -0.522897, 0.204455 world kinect2_k2_ir_optical_frame " />-->
+
+    <node pkg="tf2_ros" type="static_transform_publisher" name="ir1_wrt_world" args="1.408428, 1.890033, 1.901042, 0.341766, 0.757794, -0.507847, -0.225911 world kinect2_k1_ir_optical_frame" />
+    <node pkg="tf2_ros" type="static_transform_publisher" name="ir2_wrt_world" args="-1.657903, 1.708102, 1.878507 -0.297836, 0.772056, -0.522897, 0.204455 world kinect2_k2_ir_optical_frame " />
+
+    <!-- set the transformation between rgb and ir frames -->
+    <node pkg="tf2_ros" type="static_transform_publisher" name="rgb1_wrt_ir1" args="0.0569, 0.0036, 0.0056, -0.0023 0.0043 0.0005 0.99999 kinect2_k1_ir_optical_frame kinect2_k1_rgb_optical_frame " />
+    <node pkg="tf2_ros" type="static_transform_publisher" name="rgb2_wrt_ir2" args="0.05690, 0.0057, 0.010, -0.0041 0.0025 0.0022 0.99999 kinect2_k2_ir_optical_frame kinect2_k2_rgb_optical_frame " />
+    <node pkg="tf2_ros" type="static_transform_publisher" name="aruco_wrt_world" args="0.00000 0.300000 0.000000 1.57079632 0.0000 1.57079632 world aruco " />
+
+    <node name="$(arg base_name)" pkg="kinect_fusion" type="kinect_fusion_node" output="screen">
+        <param name="base_name"                 type="str"    value="$(arg base_name)"/>
+        <rosparam param="raw_images_topics"     subst_value="True">$(arg raw_images_topics)</rosparam>
+        <rosparam param="points_topics"         subst_value="True">$(arg points_topics)</rosparam>
+        <rosparam param="cameras_info_topics"   subst_value="True">$(arg cameras_info_topics)</rosparam>
+        <param name="using_aruco"               type="bool"   value="$(arg using_aruco)"/>
+    </node>
+
+</launch>

@@ -13,7 +13,7 @@ lwr:
   - lwr_a5_joint
   - lwr_a6_joint
   gravity_wrt_robot_base:
-    x: 9.80665016
-    y: 0.00000000
+    x: 0.00000000
+    y: 9.80665016
     z: 0.00000000
 

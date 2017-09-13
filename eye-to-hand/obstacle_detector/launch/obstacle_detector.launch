@@ -8,7 +8,7 @@
     <arg name="octree_resolution"   default="0.15"/>
 
     <node name="$(arg base_name)"       pkg="obstacle_detector" type="obstacle_detector_node" output="screen">
-        <rosparam file="$(find obstacle_detector)/config/parameters.yaml" command="load"/>
+        <rosparam file="$(find obstacle_detector)/config/hri_parameters.yaml" command="load"/>
         <param name="base_name"     	type="str"              value="$(arg base_name)"/>
         <param name="sim_obstacle_enb"	type="bool"             value="$(arg sim_obstacle_enb)"/>
         <param name="points_topic"      type="str"              value="$(arg points_topic)"/>

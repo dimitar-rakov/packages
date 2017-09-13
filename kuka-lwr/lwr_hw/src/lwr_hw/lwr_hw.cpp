@@ -232,9 +232,9 @@ void LWRHW::registerJointLimits(const std::string& joint_name,
         *lower_limit = limits.min_position;
         *upper_limit = limits.max_position;
     }
-    if (limits.has_velocity_limits)
+    if (limits.has_velocity_limits){
         *velocity_limit = limits.max_velocity;
-
+    }
     if (limits.has_effort_limits)
         *effort_limit = limits.max_effort;
 

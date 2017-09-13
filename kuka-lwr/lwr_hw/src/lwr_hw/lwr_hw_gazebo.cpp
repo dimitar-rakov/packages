@@ -87,7 +87,7 @@ void LWRHWGazebo::write(ros::Time time, ros::Duration period)
         sim_joints_[j]->SetAngle(0, joint_cmd_position_[j] + joint_cmd_position_add_[j]);
 #endif
         // d.r. workaround to fix ofsets caused by physical properties of the gazebo mode
-        joint_cmd_position_add_[j] += -0.1 * (joint_msr_position_[j] -joint_cmd_position_[j]);
+        joint_cmd_position_add_[j] += -0.05 * (joint_msr_position_[j] -joint_cmd_position_[j]);
       }
       break;
 

@@ -681,8 +681,6 @@ void ObstacleDetector::detectOctreeVoxels(){
     ROS_WARN("Processing 3.1 (VoxelCenters) takes %lf Size of out point_grid %ld" ,(ros::Time::now() -last_time).toSec(), point_grid.size());
 
 
-
-
 //    last_time = ros::Time::now();
 //    visualization_msgs::Marker marker1;
 //    obstacle_objects_test_.markers.clear();

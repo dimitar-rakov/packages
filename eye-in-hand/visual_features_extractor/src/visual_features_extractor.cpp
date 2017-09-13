@@ -153,7 +153,6 @@ bool VisualFeaturesExtractor::init(ros::NodeHandle &nh){
   x_.resize(num_features_);
   y_.resize(num_features_);
 
-
   //sim features wrt to world default
   TFwsf_.setOrigin(tf::Vector3( 0.0,  1.50,  0.75));
   TFwsf_.setRotation(tf::createQuaternionFromRPY(M_PI_2,  0,  0));
@@ -174,7 +173,7 @@ bool VisualFeaturesExtractor::init(ros::NodeHandle &nh){
   //    TFwsf_.setOrigin(tf::Vector3(-1.25, 0.65, 1.25));
   //    TFwsf_.setRotation(tf::createQuaternionFromRPY(M_PI_2, 0, M_PI_2));
 
-  TFwe_.setOrigin(tf::Vector3( 0.000,  0.661,  0.762));
+  TFwe_.setOrigin(tf::Vector3( 0.0297,  0.7406,  0.8944));
   TFwe_.setRotation(tf::Quaternion( 0.707106781,  0.707106781,  0.000,  0.000));
 
 
@@ -191,8 +190,7 @@ bool VisualFeaturesExtractor::init(ros::NodeHandle &nh){
 
   // Initialize  publishers
   pub_vis_features_ = nh_.advertise<visual_features_extractor::VisFeature>(nh_.getNamespace()+"/visual_features_data", 10);
-
-  pub_tmp_data_ =  nh_.advertise<std_msgs::Float64MultiArray>(nh_.getNamespace()+"/visual_features_all_data", 10);
+  pub_all_data_ =  nh_.advertise<std_msgs::Float64MultiArray>(nh_.getNamespace()+"/all_data", 10);
 
   // Initialize  services
   srv_set_sim_features_tf_ = nh_.advertiseService(nh_.getNamespace()+"/set_tf_sim_feature_wrt_world", &VisualFeaturesExtractor::setTfSimFeatureWrtWorld, this);
@@ -200,7 +198,7 @@ bool VisualFeaturesExtractor::init(ros::NodeHandle &nh){
   srv_set_des_template_ = nh_.advertiseService(nh_.getNamespace()+"/set_desired_template", &VisualFeaturesExtractor::setDesiredTemplate, this);
   srv_start_features_rotation_ = nh_.advertiseService(nh_.getNamespace()+"/start_features_rotation", &VisualFeaturesExtractor::startFeaturesRotation, this);
 
-
+  Z_des_ =0.68; // desired
 
   ROS_INFO ("VisualFeaturesExtractor with a name %s is initialized", base_name_.c_str());
   return true;
@@ -292,7 +290,6 @@ void VisualFeaturesExtractor::update(const ros::Time& time, const ros::Duration&
 
     // Calculation for desired feature
     visualFeatureMsg_.is_valid_des_feature = calcFeaturesParameters(des_features_coord_);
-    Z_des_ = Z_;
     mu02des_= mu02_;
     mu20des_ = mu20_;
 
@@ -448,16 +445,15 @@ bool VisualFeaturesExtractor::setTfDesFeatureWrtCamera(
   return true;
 }
 
-bool VisualFeaturesExtractor:: setDesiredTemplate(
-    std_srvs::Empty::Request &req, std_srvs::Empty::Request &res){
-  if (image_status_ ==1){
+bool VisualFeaturesExtractor:: setDesiredTemplate(visual_features_extractor::set_depth::Request &req, visual_features_extractor::set_depth::Response &res)
+{
 
-    tf::Transform TFcdf;
-    std::vector<cv::Point2d> features_coord;
-    std::vector<std::vector<cv::Point> > contours;
-    std::vector<std::string> founded_features_names;
-    std::vector<aruco::Marker>  markers;
-
+  tf::Transform TFcdf;
+  std::vector<cv::Point2d> features_coord;
+  std::vector<std::vector<cv::Point> > contours;
+  std::vector<std::string> founded_features_names;
+  std::vector<aruco::Marker>  markers;
+  if (image_status_ ==1 && !using_sim_features_){
     // Rectify the image
     if (!cam_param_.K.empty() && !cam_param_.D.empty()){
       cv::Mat1d cameraMatrix = (cv::Mat1d(3, 3) << cam_param_.K[0], 0, cam_param_.K[2], 0, cam_param_.K[4], cam_param_.K[5], 0, 0, 1);
@@ -465,7 +461,7 @@ bool VisualFeaturesExtractor:: setDesiredTemplate(
       cv::undistort(in_images_ptr_->image, rect_image_, cameraMatrix, distCoeffs);
     }
 
-    if (using_colored_blobs_){
+    if (using_colored_blobs_ ){
       findBlobsContours(rect_image_ , contours, founded_features_names);
       for (size_t i = 0; i< contours.size(); i++){
         cv::Moments momensts = cv::moments( contours[i], false);
@@ -474,7 +470,7 @@ bool VisualFeaturesExtractor:: setDesiredTemplate(
         std::cout << founded_features_names[i]<< " ["<<fc.x<<"  " <<fc.y<<"]   ";
       }
     }
-    else{
+    else {
       findArucoMarkers (in_images_ptr_->image , markers, founded_features_names);
       for (size_t i = 0; i< markers.size(); i++){
         // find the center of the marker
@@ -484,23 +480,47 @@ bool VisualFeaturesExtractor:: setDesiredTemplate(
         std::cout << founded_features_names[i]<< " ["<<fc.x<<"  " <<fc.y<<"]   ";
       }
     }
+
     if(using_colored_blobs_ && features_coord.size() != hue_min_limits_.size())
       ROS_WARN ("Founded features are inconsistent");
     else if(!using_colored_blobs_ && features_coord.size() != arucos_id.size())
       ROS_WARN ("Founded features are inconsistent");
     else{
-
       ROS_WARN ("Founded features are ok");
       allTFcdf_.clear();
       for (size_t i = 0; i< features_coord.size(); i++){
         TFcdf.setOrigin(tf::Vector3(features_coord[i].x, features_coord[i].y, 0.0));
         TFcdf.setRotation(tf::createQuaternionFromRPY(0.0, 0.0, 0.0));
         allTFcdf_.push_back(TFcdf);
+        Z_des_ = req.depth;
+        res.set =true;
       }
     }
   }
-  else
+  else if (!using_sim_features_)
     ROS_WARN ("There is not still a received image for templates");
+
+  if(using_sim_features_){
+    for (size_t i = 0; i< sim_features_coord_.size(); i++){
+      // use sim features
+      cv::Point2d fc = sim_features_coord_[i];
+      features_coord.push_back(fc);
+      std::cout << "new desired features "<< " ["<<fc.x<<"  " <<fc.y<<"]   ";
+    }
+    if(features_coord.size() != num_features_)
+      ROS_WARN ("Founded features are inconsistent");
+    else{
+      ROS_WARN ("Founded features are ok");
+      allTFcdf_.clear();
+      for (size_t i = 0; i< features_coord.size(); i++){
+        TFcdf.setOrigin(tf::Vector3(features_coord[i].x, features_coord[i].y, 0.0));
+        TFcdf.setRotation(tf::createQuaternionFromRPY(0.0, 0.0, 0.0));
+        allTFcdf_.push_back(TFcdf);
+        Z_des_ = req.depth;
+        res.set =true;
+      }
+    }
+  }
   return true;
 }
 
@@ -765,7 +785,7 @@ std::vector<std::vector<cv::Point> >VisualFeaturesExtractor::getBestNContours(
   return bestContours;
 }
 
-bool VisualFeaturesExtractor::calcFeaturesParameters(const std::vector<cv::Point2d> in_features_coord){
+bool VisualFeaturesExtractor::calcFeaturesParameters(const std::vector<cv::Point2d> &in_features_coord){
 
   std::vector<cv::Point2d> norm_pixel_coord(in_features_coord);
 
@@ -807,126 +827,40 @@ bool VisualFeaturesExtractor::calcFeaturesParameters(const std::vector<cv::Point
     mu03_ = calcCentralMoment(norm_pixel_coord, 0, 3);
     mu30_ = calcCentralMoment(norm_pixel_coord, 3, 0);
 
-    if (extended_features_var_ == 1.0){
-      xg_ =  m10_/m00_;
-      yg_ =  m01_/m00_;
-      a_ = mu20_ + mu02_;
+    // Calculation of mean Z
+    std::vector<cv::Point2d> real_coord;
+    std::vector<double> dist_real_coord;
+    std::vector<double> dist_norm_coord;
+    real_coord.resize(des_features_coord_.size());
+    dist_real_coord.resize(des_features_coord_.size(),0.0);
+    dist_norm_coord.resize(des_features_coord_.size(),0.0);
 
-      s1_=mu03_-3*mu21_;
-      s2_=mu30_-3*mu12_;
-      t1_ = pow((mu20_-mu02_), 2) -4 * pow(mu11_,2);
-      t2_ = 4*mu11_ * (mu20_-mu02_);
-      delta_ = pow((mu20_-mu02_), 2) + 4* pow(mu11_, 2);
-      K_= delta_ * pow((mu20_ + mu02_), 1.5);
-
-      sx_= sqrt(a_) * (s1_ * t1_ + s2_ * t2_ )/K_;
-      sy_= sqrt(a_) * (s2_ * t1_ - s1_ * t2_ )/K_;
-      P2_ = delta_/pow((mu20_ + mu02_), 2);
-      P3_ = a_* ( pow(s1_, 2) + pow(s2_, 2))/pow((mu20_ + mu02_), 3) ;
-      alpha_ = (0.5 * ((std::atan2(2 * mu11_, (mu20_ - mu02_)))));
-    }
-
-    if (extended_features_var_ == 1.1){
-      xg_ =  m10_/m00_;
-      yg_ =  m01_/m00_;
-      a_ = mu20_ + mu02_;
-
-      s1_=mu03_-3*mu21_;
-      s2_=mu30_-3*mu12_;
-      t1_ = pow((mu20_-mu02_), 2) -4 * pow(mu11_,2);
-      t2_ = 4*mu11_ * (mu20_-mu02_);
-      delta_ = pow((mu20_-mu02_), 2) + 4* pow(mu11_, 2);
-      K_= delta_ * pow((mu20_ + mu02_), 1.5);
-
-      sx_= (s1_ * t1_ + s2_ * t2_ )/K_;
-      sy_= (s2_ * t1_ - s1_ * t2_ )/K_;
-      P2_ = delta_/pow((mu20_ + mu02_), 2);
-      P3_ = a_* ( pow(s1_, 2) + pow(s2_, 2))/pow((mu20_ + mu02_), 3) ;
-      alpha_ = 0.5 * std::atan2(2 * mu11_, mu20_ - mu02_);    //Overloaded
-    }
-
-    if (extended_features_var_ == 1.2){
-      xg_ =  m10_/m00_;
-      yg_ =  m01_/m00_;
-      a_ = mu20_ + mu02_;
-
-      c1_ = mu20_- mu02_;
-      c2_ = mu03_-3.0 * mu21_;
-      s1_ = 2.0 * mu11_;
-      s2_ = mu30_ -3*mu12_;
-      c3_ = c1_*c1_ - s1_*s1_;
-      s3_ = 2.0*s1_*c1_;
-      I1_ = c1_*c1_ + s1_*s1_;
-      I2_ = c2_*c2_ + s2_*s2_;
-      I3_ = mu20_ + mu02_;
-
-      k_ = I1_ * pow(I3_, 1.5)/sqrt(a_);
-      px_ = I1_/(I3_ * I3_);
-      py_ = a_*I2_/(I3_ * I3_* I3_);
-      sx_ = (c2_*c3_+s2_*s3_)/k_;
-      sy_ = (s2_*c3_-c2_*s3_)/k_;
-      alpha_ = 0.5 * std::atan2(2 * mu11_, mu20_ - mu02_);    //Overloaded
-    }
-
-    if (extended_features_var_ == 1.3){
-      xg_ =  m10_/m00_;
-      yg_ =  m01_/m00_;
-      a_ = mu20_ + mu02_;
-
-      c1_ = mu20_- mu02_;
-      c2_ = mu03_-3.0 * mu21_;
-      s1_ = 2.0 * mu11_;
-      s2_ = mu30_ -3*mu12_;
-      c3_ = c1_*c1_ - s1_*s1_;
-      s3_ = 2.0*s1_*c1_;
-      I1_ = c1_*c1_ + s1_*s1_;
-      I2_ = c2_*c2_ + s2_*s2_;
-      I3_ = mu20_ + mu02_;
-
-      k_ = I1_ * pow(I3_, 1.5);
-      px_ = I1_/(I3_ * I3_);
-      py_ = a_*I2_/(I3_ * I3_* I3_);
-      sx_ = (c2_*c3_+s2_*s3_)/k_;
-      sy_ = (s2_*c3_-c2_*s3_)/k_;
-      alpha_ = 0.5 * std::atan2(2 * mu11_, mu20_ - mu02_);    //Overloaded
-    }
-
-
-
-    if (extended_features_var_ == 1.4){
-      xg_ =  m10_/m00_;
-      yg_ =  m01_/m00_;
-      a_ = mu20_ + mu02_;
-      a_des_ = mu02des_ + mu20des_;
-      an_= Z_des_ * sqrt(a_des_/a_);
-
-
-      alpha_ = 0.5 * std::atan2(2 * mu11_, mu20_ - mu02_);    //Overloaded
-    }
-
-    ///////////////////////////////// ToDO REMOVE!!!!!!!!!!!!/////////////////////////////////////////
-    //F = (P x  D)/W
-    // D’ = (W x F) / P
-    //F focal length , W (object width , D distance from camera , P width in pixels )
-    double focal_length = 0.90;
-    double widht = 0.080;
-    double height = 0.060;
+    cv::Point2d real_dist, norm_dist;
     double sum_Z = 0.0;
+    for(size_t i = 0; i< des_features_coord_.size(); i++){
+      cv::Point2d norm_coord;
+      norm_coord.x = (des_features_coord_[i].x - cam_param_.P[2])/cam_param_.P[0];
+      norm_coord.y = (des_features_coord_[i].y - cam_param_.P[6])/cam_param_.P[5];
+      real_coord[i] = Z_des_ * norm_coord;
+    }
 
-    // the width by test features is bigger than the height
-    cv::Point2d dist;
-    dist = norm_pixel_coord[1] - norm_pixel_coord[0];
-    sum_Z +=  widht * focal_length /(sqrt (dist.x* dist.x + dist.y * dist.y));
+    for(size_t i = 0; i< des_features_coord_.size(); i++){
 
-    dist = norm_pixel_coord[2] - norm_pixel_coord[1];
-    sum_Z +=  height * focal_length /(sqrt (dist.x* dist.x + dist.y * dist.y));
-    dist = norm_pixel_coord[3] - norm_pixel_coord[0];
-    sum_Z +=  height * focal_length /(sqrt (dist.x* dist.x + dist.y * dist.y));
+      if (i ==  des_features_coord_.size()-1){
+        norm_dist =norm_pixel_coord[i] - norm_pixel_coord[0];
+        real_dist = real_coord[i] - real_coord[0];
+      }
+      else{
+        norm_dist =norm_pixel_coord[i+1] - norm_pixel_coord[i];
+        real_dist = real_coord[i+1] - real_coord[i];
+      }
+      dist_norm_coord[i] = (sqrt (norm_dist.x* norm_dist.x + norm_dist.y * norm_dist.y));
+      dist_real_coord[i] = std::sqrt(real_dist.x* real_dist.x + real_dist.y * real_dist.y);
+      sum_Z += dist_real_coord[i]/dist_norm_coord[i];
+    }
 
-    Z_ = sum_Z/3;
-
-    /////////////////////////////////////////////////////////////////////////////////////////////
-
+    // Mean of Z
+    Z_ = sum_Z /des_features_coord_.size();
     return true;
 
   }
@@ -970,17 +904,26 @@ void VisualFeaturesExtractor::calcSimple(Eigen::VectorXd &s, Eigen::MatrixXd &L)
 }
 
 void VisualFeaturesExtractor::calcExtendedAsymmetricalV1_0(Eigen::VectorXd &s, Eigen::MatrixXd &L_asym){
+
+  xg_ =  m10_/m00_;
+  yg_ =  m01_/m00_;
+  a_ = mu20_ + mu02_;
+
+  s1_=mu03_-3*mu21_;
+  s2_=mu30_-3*mu12_;
+  t1_ = pow((mu20_-mu02_), 2) -4 * pow(mu11_,2);
+  t2_ = 4*mu11_ * (mu20_-mu02_);
+  delta_ = pow((mu20_-mu02_), 2) + 4* pow(mu11_, 2);
+  K_= delta_ * pow((mu20_ + mu02_), 1.5);
+
+  sx_= sqrt(a_) * (s1_ * t1_ + s2_ * t2_ )/K_;
+  sy_= sqrt(a_) * (s2_ * t1_ - s1_ * t2_ )/K_;
+  P2_ = delta_/pow((mu20_ + mu02_), 2);
+  P3_ = a_* ( pow(s1_, 2) + pow(s2_, 2))/pow((mu20_ + mu02_), 3) ;
+  //alpha_ = (0.5 * ((std::atan2(2 * mu11_, (mu20_ - mu02_)))));
+
   s = (Eigen::VectorXd(6) << xg_, yg_, a_, P2_, P3_, alpha_).finished();
   L_asym = Eigen::MatrixXd::Zero(6,6);
-  double x_0 = x_(0);
-  double x_1 = x_(1);
-  double x_2 = x_(2);
-  double x_3 = x_(3);
-  double y_0 = y_(0);
-  double y_1 = y_(1);
-  double y_2 = y_(2);
-  double y_3 = y_(3);
-
 
   L_asym(0, 0) = -1.0/Z_;
   L_asym(0, 2) = m10_/(Z_*m00_);
@@ -1008,17 +951,26 @@ void VisualFeaturesExtractor::calcExtendedAsymmetricalV1_0(Eigen::VectorXd &s, E
 }
 
 void VisualFeaturesExtractor::calcExtendedSymmetricalV1_0(Eigen::VectorXd &s, Eigen::MatrixXd &L_sym){
+
+  xg_ =  m10_/m00_;
+  yg_ =  m01_/m00_;
+  a_ = mu20_ + mu02_;
+
+  s1_=mu03_-3*mu21_;
+  s2_=mu30_-3*mu12_;
+  t1_ = pow((mu20_-mu02_), 2) -4 * pow(mu11_,2);
+  t2_ = 4*mu11_ * (mu20_-mu02_);
+  delta_ = pow((mu20_-mu02_), 2) + 4* pow(mu11_, 2);
+  K_= delta_ * pow((mu20_ + mu02_), 1.5);
+
+  sx_= sqrt(a_) * (s1_ * t1_ + s2_ * t2_ )/K_;
+  sy_= sqrt(a_) * (s2_ * t1_ - s1_ * t2_ )/K_;
+  P2_ = delta_/pow((mu20_ + mu02_), 2);
+  P3_ = a_* ( pow(s1_, 2) + pow(s2_, 2))/pow((mu20_ + mu02_), 3) ;
+  //alpha_ = (0.5 * ((std::atan2(2 * mu11_, (mu20_ - mu02_)))));
+
   s = (Eigen::VectorXd(6) << xg_, yg_, a_, sx_, sy_, alpha_).finished();
   L_sym = Eigen::MatrixXd::Zero(6,6);;
-
-  double x_0 = x_(0);
-  double x_1 = x_(1);
-  double x_2 = x_(2);
-  double x_3 = x_(3);
-  double y_0 = y_(0);
-  double y_1 = y_(1);
-  double y_2 = y_(2);
-  double y_3 = y_(3);
 
   L_sym(0, 0) = -1.0/Z_;
   L_sym(0, 2) = m10_/(Z_*m00_);
@@ -1048,6 +1000,25 @@ void VisualFeaturesExtractor::calcExtendedSymmetricalV1_0(Eigen::VectorXd &s, Ei
 }
 
 void VisualFeaturesExtractor::calcExtendedAsymmetricalV1_1(Eigen::VectorXd &s, Eigen::MatrixXd &L_asym){
+
+  xg_ =  m10_/m00_;
+  yg_ =  m01_/m00_;
+  a_ = mu20_ + mu02_;
+
+  s1_=mu03_-3*mu21_;
+  s2_=mu30_-3*mu12_;
+  t1_ = pow((mu20_-mu02_), 2) -4 * pow(mu11_,2);
+  t2_ = 4*mu11_ * (mu20_-mu02_);
+  delta_ = pow((mu20_-mu02_), 2) + 4* pow(mu11_, 2);
+  K_= delta_ * pow((mu20_ + mu02_), 1.5);
+
+  sx_= (s1_ * t1_ + s2_ * t2_ )/K_;
+  sy_= (s2_ * t1_ - s1_ * t2_ )/K_;
+  P2_ = delta_/pow((mu20_ + mu02_), 2);
+  P3_ = a_* ( pow(s1_, 2) + pow(s2_, 2))/pow((mu20_ + mu02_), 3) ;
+  //alpha_ = 0.5 * std::atan2(2 * mu11_, mu20_ - mu02_);    //Overloaded
+
+
   s = (Eigen::VectorXd(6) << xg_, yg_, a_, P2_, P3_, alpha_).finished();
   L_asym = Eigen::MatrixXd::Zero(6,6);
 
@@ -1076,6 +1047,23 @@ void VisualFeaturesExtractor::calcExtendedAsymmetricalV1_1(Eigen::VectorXd &s, E
 }
 
 void VisualFeaturesExtractor::calcExtendedSymmetricalV1_1(Eigen::VectorXd &s, Eigen::MatrixXd &L_sym){
+  xg_ =  m10_/m00_;
+  yg_ =  m01_/m00_;
+  a_ = mu20_ + mu02_;
+
+  s1_=mu03_-3*mu21_;
+  s2_=mu30_-3*mu12_;
+  t1_ = pow((mu20_-mu02_), 2) -4 * pow(mu11_,2);
+  t2_ = 4*mu11_ * (mu20_-mu02_);
+  delta_ = pow((mu20_-mu02_), 2) + 4* pow(mu11_, 2);
+  K_= delta_ * pow((mu20_ + mu02_), 1.5);
+
+  sx_= (s1_ * t1_ + s2_ * t2_ )/K_;
+  sy_= (s2_ * t1_ - s1_ * t2_ )/K_;
+  P2_ = delta_/pow((mu20_ + mu02_), 2);
+  P3_ = a_* ( pow(s1_, 2) + pow(s2_, 2))/pow((mu20_ + mu02_), 3) ;
+  //alpha_ = 0.5 * std::atan2(2 * mu11_, mu20_ - mu02_);    //Overloaded
+
   s = (Eigen::VectorXd(6) << xg_, yg_, a_, sx_, sy_, alpha_).finished();
   L_sym = Eigen::MatrixXd::Zero(6,6);;
 
@@ -1107,6 +1095,27 @@ void VisualFeaturesExtractor::calcExtendedSymmetricalV1_1(Eigen::VectorXd &s, Ei
 }
 
 void VisualFeaturesExtractor::calcExtendedAsymmetricalV1_2(Eigen::VectorXd &s, Eigen::MatrixXd &L_asym){
+  xg_ =  m10_/m00_;
+  yg_ =  m01_/m00_;
+  a_ = mu20_ + mu02_;
+
+  c1_ = mu20_- mu02_;
+  c2_ = mu03_-3.0 * mu21_;
+  s1_ = 2.0 * mu11_;
+  s2_ = mu30_ -3*mu12_;
+  c3_ = c1_*c1_ - s1_*s1_;
+  s3_ = 2.0*s1_*c1_;
+  I1_ = c1_*c1_ + s1_*s1_;
+  I2_ = c2_*c2_ + s2_*s2_;
+  I3_ = mu20_ + mu02_;
+
+  k_ = I1_ * pow(I3_, 1.5)/sqrt(a_);
+  px_ = I1_/(I3_ * I3_);
+  py_ = a_*I2_/(I3_ * I3_* I3_);
+  sx_ = (c2_*c3_+s2_*s3_)/k_;
+  sy_ = (s2_*c3_-c2_*s3_)/k_;
+  //alpha_ = 0.5 * std::atan2(2 * mu11_, mu20_ - mu02_);    //Overloaded
+
   s = (Eigen::VectorXd(6) << xg_, yg_, a_, px_, py_, alpha_).finished();
   L_asym = Eigen::MatrixXd::Zero(6,6);
 
@@ -1136,6 +1145,28 @@ void VisualFeaturesExtractor::calcExtendedAsymmetricalV1_2(Eigen::VectorXd &s, E
 }
 
 void VisualFeaturesExtractor::calcExtendedSymmetricalV1_2(Eigen::VectorXd &s, Eigen::MatrixXd &L_sym){
+
+  xg_ =  m10_/m00_;
+  yg_ =  m01_/m00_;
+  a_ = mu20_ + mu02_;
+
+  c1_ = mu20_- mu02_;
+  c2_ = mu03_-3.0 * mu21_;
+  s1_ = 2.0 * mu11_;
+  s2_ = mu30_ -3*mu12_;
+  c3_ = c1_*c1_ - s1_*s1_;
+  s3_ = 2.0*s1_*c1_;
+  I1_ = c1_*c1_ + s1_*s1_;
+  I2_ = c2_*c2_ + s2_*s2_;
+  I3_ = mu20_ + mu02_;
+
+  k_ = I1_ * pow(I3_, 1.5)/sqrt(a_);
+  px_ = I1_/(I3_ * I3_);
+  py_ = a_*I2_/(I3_ * I3_* I3_);
+  sx_ = (c2_*c3_+s2_*s3_)/k_;
+  sy_ = (s2_*c3_-c2_*s3_)/k_;
+  //alpha_ = 0.5 * std::atan2(2 * mu11_, mu20_ - mu02_);    //Overloaded
+
   s = (Eigen::VectorXd(6) << xg_, yg_, a_, sx_, sy_, alpha_).finished();
   L_sym = Eigen::MatrixXd::Zero(6,6);;
 
@@ -1167,6 +1198,29 @@ void VisualFeaturesExtractor::calcExtendedSymmetricalV1_2(Eigen::VectorXd &s, Ei
 }
 
 void VisualFeaturesExtractor::calcExtendedAsymmetricalV1_3(Eigen::VectorXd &s, Eigen::MatrixXd &L_asym){
+
+  xg_ =  m10_/m00_;
+  yg_ =  m01_/m00_;
+  a_ = mu20_ + mu02_;
+
+  c1_ = mu20_- mu02_;
+  c2_ = mu03_-3.0 * mu21_;
+  s1_ = 2.0 * mu11_;
+  s2_ = mu30_ -3*mu12_;
+  c3_ = c1_*c1_ - s1_*s1_;
+  s3_ = 2.0*s1_*c1_;
+  I1_ = c1_*c1_ + s1_*s1_;
+  I2_ = c2_*c2_ + s2_*s2_;
+  I3_ = mu20_ + mu02_;
+
+  k_ = I1_ * pow(I3_, 1.5);
+  px_ = I1_/(I3_ * I3_);
+  py_ = a_*I2_/(I3_ * I3_* I3_);
+  sx_ = (c2_*c3_+s2_*s3_)/k_;
+  sy_ = (s2_*c3_-c2_*s3_)/k_;
+  //alpha_ = 0.5 * std::atan2(2 * mu11_, mu20_ - mu02_);    //Overloaded
+
+
   s = (Eigen::VectorXd(6) << xg_, yg_, a_, px_, py_, alpha_).finished();
   L_asym = Eigen::MatrixXd::Zero(6,6);
 
@@ -1196,6 +1250,28 @@ void VisualFeaturesExtractor::calcExtendedAsymmetricalV1_3(Eigen::VectorXd &s, E
 }
 
 void VisualFeaturesExtractor::calcExtendedSymmetricalV1_3(Eigen::VectorXd &s, Eigen::MatrixXd &L_sym){
+
+  xg_ =  m10_/m00_;
+  yg_ =  m01_/m00_;
+  a_ = mu20_ + mu02_;
+
+  c1_ = mu20_- mu02_;
+  c2_ = mu03_-3.0 * mu21_;
+  s1_ = 2.0 * mu11_;
+  s2_ = mu30_ -3*mu12_;
+  c3_ = c1_*c1_ - s1_*s1_;
+  s3_ = 2.0*s1_*c1_;
+  I1_ = c1_*c1_ + s1_*s1_;
+  I2_ = c2_*c2_ + s2_*s2_;
+  I3_ = mu20_ + mu02_;
+
+  k_ = I1_ * pow(I3_, 1.5);
+  px_ = I1_/(I3_ * I3_);
+  py_ = a_*I2_/(I3_ * I3_* I3_);
+  sx_ = (c2_*c3_+s2_*s3_)/k_;
+  sy_ = (s2_*c3_-c2_*s3_)/k_;
+  //alpha_ = 0.5 * std::atan2(2 * mu11_, mu20_ - mu02_);    //Overloaded
+
   s = (Eigen::VectorXd(6) << xg_, yg_, a_, sx_, sy_, alpha_).finished();
   L_sym = Eigen::MatrixXd::Zero(6,6);
 
@@ -1265,28 +1341,50 @@ void VisualFeaturesExtractor::desVisualFeaturesTFs(){
   tf::Transform TF0f;
   allTFcdf_.clear();
 
-  //top_left_features
-  TF0f.setOrigin(tf::Vector3( -40.0,  -30.0,  0.0));
-  TF0f.setRotation(tf::createQuaternionFromRPY( 0.0,  0.0,  -M_PI_2));
-  allTFcdf_.push_back(TFcdf_ * TF0f);
+  if (using_symmetrical_features_){
+    //top_left_features
+    TF0f.setOrigin(tf::Vector3( -41.5,  -31.0,  0.0));
+    TF0f.setRotation(tf::createQuaternionFromRPY( 0.0,  0.0,  -M_PI_2));
+    allTFcdf_.push_back(TFcdf_ * TF0f);
 
-  //top_right_features
-  TF0f.setOrigin(tf::Vector3( 40.0,  -30.0,  0.0));
-  TF0f.setRotation(tf::createQuaternionFromRPY( 0.0,  0.0,  M_PI));
-  allTFcdf_.push_back(TFcdf_ * TF0f);
+    //top_right_features
+    TF0f.setOrigin(tf::Vector3( 40.00,  -31.0,  0.0));
+    TF0f.setRotation(tf::createQuaternionFromRPY( 0.0,  0.0,  M_PI));
+    allTFcdf_.push_back(TFcdf_ * TF0f);
 
-  //bottom_right_features
-  if (using_symmetrical_features_)
-    TF0f.setOrigin(tf::Vector3( 40.0,  30.0,  0.0));
-  else
-    TF0f.setOrigin(tf::Vector3( 80.0,  30.0,  0.0));
-  TF0f.setRotation(tf::createQuaternionFromRPY( 0.0,  0.0,  M_PI_2));
-  allTFcdf_.push_back(TFcdf_ * TF0f);
+    //bottom_right_features
 
-  //bottom_left_features
-  TF0f.setOrigin(tf::Vector3( -40.0,  30.0,  0.0));
-  TF0f.setRotation(tf::createQuaternionFromRPY( 0.0,  0.0,  0.0));
-  allTFcdf_.push_back(TFcdf_ * TF0f);
+    TF0f.setOrigin(tf::Vector3( 40.00,  29.5,  0.0));
+    TF0f.setRotation(tf::createQuaternionFromRPY( 0.0,  0.0,  M_PI_2));
+    allTFcdf_.push_back(TFcdf_ * TF0f);
+
+    //bottom_left_features
+    TF0f.setOrigin(tf::Vector3( -41.5,  29.5,  0.0));
+    TF0f.setRotation(tf::createQuaternionFromRPY( 0.0,  0.0,  0.0));
+    allTFcdf_.push_back(TFcdf_ * TF0f);
+
+  }
+  else{
+    //top_left_features
+    TF0f.setOrigin(tf::Vector3( -41.5,  -30.0,  0.0));
+    TF0f.setRotation(tf::createQuaternionFromRPY( 0.0,  0.0,  -M_PI_2));
+    allTFcdf_.push_back(TFcdf_ * TF0f);
+
+    //top_right_features
+    TF0f.setOrigin(tf::Vector3( 39.5,  -30.0,  0.0));
+    TF0f.setRotation(tf::createQuaternionFromRPY( 0.0,  0.0,  M_PI));
+    allTFcdf_.push_back(TFcdf_ * TF0f);
+
+    //bottom_right_features
+    TF0f.setOrigin(tf::Vector3( 79.9,  30.0,  0.0));
+    TF0f.setRotation(tf::createQuaternionFromRPY( 0.0,  0.0,  M_PI_2));
+    allTFcdf_.push_back(TFcdf_ * TF0f);
+
+    //bottom_left_features
+    TF0f.setOrigin(tf::Vector3( -41.0,  30.0,  0.0));
+    TF0f.setRotation(tf::createQuaternionFromRPY( 0.0,  0.0,  0.0));
+    allTFcdf_.push_back(TFcdf_ * TF0f);
+  }
 
 }
 

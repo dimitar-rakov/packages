@@ -47,66 +47,23 @@ bool KinectFusion::init(ros::NodeHandle &nh)
     for (std::string topic : point_topics_){ ROS_WARN("Default topic's name is used: %s ", topic.c_str());}
   }
 
-  for (std::string topic : point_topics_){ ROS_WARN("Default topic's name is used: %s ", topic.c_str());}
+  for (std::string topic : point_topics_){ ROS_INFO("Following topic's name is used: %s ", topic.c_str());}
 
   if (point_topics_.size () > 6){
     ROS_ERROR ("More than 6 topics are found!");
     return false;
   }
 
+  if (!nh_.getParam("using_aruco", using_aruco_)){
+    nh_.param("using_aruco", using_aruco_, false);
+    ROS_WARN("Parameter using_aruco was not found. Default value is used: false");
+  }
+
+
 
 
   TFs_w_c.resize(point_topics_.size (), tf::Transform::getIdentity());
   TFs_a_c_.resize(cam_info_topics_.size(), tf::Transform::getIdentity());
-
-  /// TODO remove all ///////////////////////////////////////////////////////////////
-  tf::Transform TFa_w , TFa_rgb1, TFa_rgb2, TFrgb1_a, TFrgb2_a, TFrgb_ir1, TFrgb_ir2;
-  tf::Quaternion q;
-  tf::Vector3 v;
-
-
-  // Aruco wrt Cameras
-  TFrgb1_a.setOrigin(tf::Vector3(-0.627018, -1.067080, 3.404692));
-  TFrgb1_a.setRotation(tf::Quaternion(0.087088, 0.927167, -0.230036,-0.282597));
-  TFrgb2_a.setOrigin(tf::Vector3(0.336732, -0.992832, 3.265763));
-  TFrgb2_a.setRotation(tf::Quaternion(-0.073189, 0.931533, -0.261369,0.242027));
-
-  // Cameras wrt Aruco
-  TFa_rgb1 = TFrgb1_a.inverse();
-  TFa_rgb2 = TFrgb2_a.inverse();
-
-
-  //Cameras ir wrt rgb
-  TFrgb_ir1.setOrigin( tf::Vector3(0.0569519848386, -0.00359629842383, -0.00612798476349));   //Manualy set 0.0569519848386 instead of -0.0569519848386
-  TFrgb_ir1.setRotation(tf::Quaternion(0.00234451457864, -0.00436009068321, -0.000514417778053, 0.999987614041));
-  TFrgb_ir2.setOrigin( tf::Vector3(-0.0559727167749, -0.00536732469295, -0.0105464068071));
-  TFrgb_ir2.setRotation(tf::Quaternion(0.00418506953665, -0.00255933638988, -0.00220228654428, 0.999985542358));
-
-  //World wrt to aruco
-  v = tf::Vector3(-0.15, 0.0, -0.75);
-  q.setRPY(M_PI_2, 0, M_PI);
-  TFa_w.setIdentity();
-  TFa_w.setOrigin(v);
-  TFa_w.setRotation(q);
-
-  TFs_w_c[0] = (TFrgb_ir1*TFrgb1_a).inverse();
-  TFs_w_c[1] = (TFrgb_ir2*TFrgb2_a).inverse();
-
-  TFs_w_c[0] = (TFrgb_ir1*TFrgb1_a*TFa_w).inverse();
-  TFs_w_c[1] = (TFrgb_ir2*TFrgb2_a*TFa_w).inverse();
-
-
-  v = TFs_w_c[0].getOrigin();
-  q = TFs_w_c[0].getRotation();
-  ROS_INFO ("TFir1_w: %lf %lf %lf %lf %lf %lf %lf", v.x(), v.y(), v.z(), q.x(), q.y(), q.z(),q.w());
-
-
-  v = TFs_w_c[1].getOrigin();
-  q = TFs_w_c[1].getRotation();
-  ROS_INFO ("TFir2_w: %lf %lf %lf %lf %lf %lf %lf", v.x(), v.y(), v.z(), q.x(), q.y(), q.z(),q.w());
-
-  /////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 
   images_tran_.resize(raw_images_topics_.size(), image_transport::ImageTransport(nh_));
   subs_image_raw_.resize(raw_images_topics_.size());
@@ -135,7 +92,7 @@ bool KinectFusion::init(ros::NodeHandle &nh)
   for (size_t i = 0; i <  raw_images_topics_.size(); i++){
     cb_images_ptr_[i].reset (new cv_bridge::CvImage());
     in_images_ptr_[i].reset (new cv_bridge::CvImage());
-    if (USE_ARUCO)
+    if (using_aruco_)
       subs_image_raw_[i] = images_tran_[i].subscribe(raw_images_topics_[i], 1, boost::bind(&KinectFusion::imageCB, this, _1, &cb_images_ptr_[i], &safety_tons_images_[i], &image_status_[i]));
   }
 
@@ -143,7 +100,7 @@ bool KinectFusion::init(ros::NodeHandle &nh)
   for (size_t i = 0; i <  cam_info_topics_.size(); i++){
     cb_cam_info_ptr_[i].reset (new sensor_msgs::CameraInfo());
     in_cam_info_ptr_[i].reset (new sensor_msgs::CameraInfo());
-    if (USE_ARUCO)
+    if (using_aruco_)
       subs_cam_info_[i] = nh_.subscribe<sensor_msgs::CameraInfo>(cam_info_topics_[i], 1, boost::bind(&KinectFusion::cameraInfoCB, this, _1, &cb_cam_info_ptr_[i], &safety_tons_cam_info_[i], &cam_info_status_[i]));
   }
 
@@ -185,7 +142,6 @@ bool KinectFusion::init(ros::NodeHandle &nh)
   pub_points = nh_.advertise<sensor_msgs::PointCloud2> (nh_.getNamespace()+"/points", 1);
   pub_points1 = nh_.advertise<sensor_msgs::PointCloud2> (nh_.getNamespace()+"/points1", 1);
   pub_points2 = nh_.advertise<sensor_msgs::PointCloud2> (nh_.getNamespace()+"/points2", 1);
-  srv_task_number_ = nh_.advertiseService("/set_task_number", &KinectFusion::setTaskNumber, this);
 
   ROS_INFO ("KinectFusion with name %s is initialized", base_name_.c_str());
   return true;
@@ -194,7 +150,7 @@ bool KinectFusion::init(ros::NodeHandle &nh)
 
 void KinectFusion::update(const ros::Time& time, const ros::Duration& period){
 
-  if (USE_ARUCO){
+  if (using_aruco_){
     // Safety timers and mutexes images
     boost::lock_guard<boost::mutex> guard(image_cb_mutex_);
     for (size_t i = 0; i< image_status_.size(); i++){
@@ -206,7 +162,7 @@ void KinectFusion::update(const ros::Time& time, const ros::Duration& period){
     }
   }
 
-  if (USE_ARUCO){
+  if (using_aruco_){
     // Safety timers and mutexes camera info
     boost::lock_guard<boost::mutex> guard(cam_info_cb_mutex_);
     for (size_t i = 0; i< cam_info_status_.size(); i++){
@@ -259,24 +215,6 @@ void KinectFusion::cameraInfoCB(const sensor_msgs::CameraInfoConstPtr& msg, sens
   *dst_status = 1;
 }
 
-bool KinectFusion::setTaskNumber( kinect_fusion::SetTask::Request &req ,kinect_fusion::SetTask::Response &res){
-
-  if ((long int)req.task_number < 5 && (long int)req.task_number >= 0){
-    ROS_INFO("requested task: %ld", (long int)req.task_number);
-    task_number_ = (long int)req.task_number;
-    if (task_number_ == 1)
-      ROS_INFO("Do task: %ld", (long int)req.task_number);
-    else {
-      ROS_INFO("Do task: %ld", (long int)req.task_number);
-    }
-  }
-  else{
-    ROS_INFO("requested task: %ld is out of range [1-4]",(long int)req.task_number);
-  }
-  res.send =true;
-  return true;
-}
-
 void KinectFusion::markerDetect(const cv:: Mat& srs_image, const sensor_msgs::CameraInfoPtr &cam_info_ptr, tf::Transform &dstTF, int marker_id, double marker_size, std::string windows_name ){
   // initialize camera matrix and distortion coefficients
   aruco::CameraParameters camera_param;
@@ -301,7 +239,35 @@ void KinectFusion::markerDetect(const cv:: Mat& srs_image, const sensor_msgs::Ca
   srs_image.copyTo(img);
   aruco::MarkerDetector marker_detector;
   std::vector<aruco::Marker> markers;
-  tf::Transform Tc_a;
+  tf::Transform Trgb_a, Tw_ir, Trgb_ir, Tw_a, Tf;
+
+  tf::StampedTransform transform;
+  // aruco with respect to word
+  try{
+    lr_.lookupTransform("world", "aruco", ros::Time(0), transform);
+    Tw_a.setOrigin(transform.getOrigin());
+    Tw_a.setRotation(transform.getRotation());
+  }
+  catch (tf::TransformException ex){
+    ROS_ERROR("%s",ex.what());
+    ros::Duration(1.0).sleep();
+  }
+
+  try{
+    if (windows_name == std::string("Sensor 0"))
+      lr_.lookupTransform("kinect2_k1_rgb_optical_frame", "kinect2_k1_ir_optical_frame", ros::Time(0), transform);
+    else if (windows_name == std::string("Sensor 1"))
+      lr_.lookupTransform("kinect2_k2_rgb_optical_frame", "kinect2_k2_ir_optical_frame", ros::Time(0), transform);
+    else
+      ROS_WARN ("Transfor between rgb_optical_frame and ir_optical_frame was not found ");
+    Trgb_ir.setOrigin(transform.getOrigin());
+    Trgb_ir.setRotation(transform.getRotation());
+  }
+  catch (tf::TransformException ex){
+    ROS_ERROR("%s",ex.what());
+    ros::Duration(1.0).sleep();
+  }
+
 
   // detect all markers in an image
   marker_detector.detect(img, markers, camera_param, marker_size, false);
@@ -310,18 +276,24 @@ void KinectFusion::markerDetect(const cv:: Mat& srs_image, const sensor_msgs::Ca
 
     cv::Rodrigues(markers[i].Rvec, R);
     // aruco marker wrt camera
-    Tc_a.setOrigin(tf::Vector3(markers[i].Tvec.at<float>(0,0), markers[i].Tvec.at<float>(1,0), markers[i].Tvec.at<float>(2,0)));
-    Tc_a.setBasis( tf::Matrix3x3(R.at<float>(0,0), R.at<float>(0,1), R.at<float>(0,2),
+    Trgb_a.setOrigin(tf::Vector3(markers[i].Tvec.at<float>(0,0), markers[i].Tvec.at<float>(1,0), markers[i].Tvec.at<float>(2,0)));
+    Trgb_a.setBasis( tf::Matrix3x3(R.at<float>(0,0), R.at<float>(0,1), R.at<float>(0,2),
                                  R.at<float>(1,0), R.at<float>(1,1), R.at<float>(1,2),
                                  R.at<float>(2,0), R.at<float>(2,1), R.at<float>(2,2)));
-    ROS_INFO("%s. Marker with id: %d. Tc_a: Position [xyz]: [%lf, %lf, %lf]. Orientation[xyzw]: [%lf, %f, %lf, %lf]",
-             windows_name.c_str(),markers[i].id, Tc_a.getOrigin().getX(), Tc_a.getOrigin().getY(), Tc_a.getOrigin().getZ(),
-             Tc_a.getRotation().getX(), Tc_a.getRotation().getY(), Tc_a.getRotation().getZ(), Tc_a.getRotation().getW());
+    ROS_INFO("%s. Marker with id: %d. Trgb_a: Position [xyz]: [%lf, %lf, %lf]. Orientation[xyzw]: [%lf, %f, %lf, %lf]",
+             windows_name.c_str(),markers[i].id, Trgb_a.getOrigin().getX(), Trgb_a.getOrigin().getY(), Trgb_a.getOrigin().getZ(),
+             Trgb_a.getRotation().getX(), Trgb_a.getRotation().getY(), Trgb_a.getRotation().getZ(), Trgb_a.getRotation().getW());
 
-    dstTF = Tc_a.inverse();
-    ROS_INFO("%s. Marker with id: %d. Ta_c Position [xyz]: [%lf, %lf, %lf]. Orientation[xyzw]: [%lf, %f, %lf, %lf]",
+    dstTF = Trgb_a.inverse();
+    ROS_INFO("%s. Marker with id: %d. Ta_rgb Position [xyz]: [%lf, %lf, %lf]. Orientation[xyzw]: [%lf, %f, %lf, %lf]",
              windows_name.c_str(),markers[i].id, dstTF.getOrigin().getX(), dstTF.getOrigin().getY(), dstTF.getOrigin().getZ(),
              dstTF.getRotation().getX(), dstTF.getRotation().getY(), dstTF.getRotation().getZ(), dstTF.getRotation().getW());
+
+    Tw_ir = Tw_a *dstTF * Trgb_ir;
+    ROS_INFO("%s. Marker with id: %d. Tw_ir Position [xyz]: [%lf, %lf, %lf]. Orientation[xyzw]: [%lf, %f, %lf, %lf]",
+             windows_name.c_str(),markers[i].id, Tw_ir.getOrigin().getX(), Tw_ir.getOrigin().getY(), Tw_ir.getOrigin().getZ(),
+             Tw_ir.getRotation().getX(), Tw_ir.getRotation().getY(), Tw_ir.getRotation().getZ(), Tw_ir.getRotation().getW());
+
 
     markers[i].draw(img,cv::Scalar(0,0,255),2);
   }

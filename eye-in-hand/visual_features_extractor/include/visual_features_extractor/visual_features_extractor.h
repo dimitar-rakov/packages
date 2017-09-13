@@ -18,7 +18,7 @@
 #include <tf_conversions/tf_eigen.h>
 #include "visual_features_extractor/VisFeature.h"
 #include "visual_features_extractor/SetTF.h"
-
+#include "visual_features_extractor/set_depth.h"
 #include "sensor_msgs/JointState.h"
 
 
@@ -103,7 +103,7 @@ private:
     double quadrant_correction_ = 0.0;
     bool first_alpha_ = false;
     std::vector<double> data_;
-    ros::Publisher  pub_tmp_data_;
+    ros::Publisher  pub_all_data_;
     std_msgs::Float64MultiArray all_data_msg;
 
     ros::ServiceServer srv_start_features_rotation_ ;
@@ -167,7 +167,7 @@ private:
     // service for setting a transform of the desired features wrt to camera
     bool setTfDesFeatureWrtCamera(visual_features_extractor::SetTF::Request &req, visual_features_extractor::SetTF::Response &res);
 
-    bool setDesiredTemplate(std_srvs::Empty::Request &req, std_srvs::Empty::Request &res);
+    bool setDesiredTemplate(visual_features_extractor::set_depth::Request &req, visual_features_extractor::set_depth::Response &res);
 
     // function to get all transforms, needed for algorithms
     bool getTFs();
@@ -189,7 +189,7 @@ private:
     std::vector<std::vector<cv::Point> > getBestNContours(const std::vector<std::vector<cv::Point> > &srs_contours, int contour_area_treshold);
 
     // calculate image moments for given number of features and build matrices s, L,
-    bool calcFeaturesParameters(const std::vector<cv::Point2d> in_features_coord);
+    bool calcFeaturesParameters(const std::vector<cv::Point2d> &in_features_coord);
 
     // Callback function to images raw topic
     void imageCB(const sensor_msgs::ImageConstPtr& msg, cv_bridge::CvImagePtr *dst_image_ptr, ros::Time *safety_ton, int *image_status);

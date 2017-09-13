@@ -19,7 +19,7 @@
 
         <!-- set some ros tools -->
         <arg name="use_rviz" default="true"/>
-        <arg name="use_gui" default="false" />
+        <arg name="use_gui" default="true" />
 
         <!-- rviz -->
         <group if="$(arg use_rviz)">

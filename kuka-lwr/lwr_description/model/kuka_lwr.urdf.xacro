@@ -11,11 +11,11 @@
 	<xacro:include filename="$(find lwr_description)/model/kuka_lwr.transmission.xacro"/>
 
 	<!-- properties /-->
-    <xacro:property name="base_mass" value="2.0"/>
+        <xacro:property name="base_mass" value="2.0"/>
         <xacro:property name="link_mass" value="2.35"/>
         <xacro:property name="wrist_mass" value="2.1"/>     <!-- 1.1 /-->
         <xacro:property name="tip_mass" value="2.25"/>      <!-- 0.25 /-->
-        <xacro:property name="velocity_scale" value="0.1"/>
+        <xacro:property name="velocity_scale" value="0.15"/>
         <xacro:property name="effort_scale" value="1"/>
 
 	<!-- URDF model /-->

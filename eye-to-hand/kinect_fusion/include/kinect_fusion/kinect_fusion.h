@@ -37,7 +37,7 @@
 #include <message_filters/sync_policies/approximate_time.h>
 
 static const int QUEUE_SIZE =2;
-static const bool USE_ARUCO = false;
+
 
 class KinectFusion
 {
@@ -54,7 +54,6 @@ public:
 private:
 
     ros::NodeHandle nh_;
-    ros::ServiceServer srv_task_number_;
 
     // subscribers to the points
     std::vector<ros::Subscriber> subs_points_;
@@ -93,6 +92,7 @@ private:
     // Paramer server variables
     std::string base_name_;
     std::vector<std::string> raw_images_topics_, point_topics_, cam_info_topics_;
+    bool using_aruco_ ;
 
     // flags for topics data. status -1 - not not received, status 0 - delayed,
     // status 1 - receive in time and data ok, status 2 - receive in time and not valid data,
@@ -103,17 +103,11 @@ private:
     std::vector<ros::Time> safety_tons_images_, safety_tons_cam_info_;
     ros::Time safety_tons_points_;
 
-    int task_number_;                                    // define which task is going to be started
-
     //Aruco related variables
     double marker_size_;
     int marker_id_;
 
     boost::mutex image_cb_mutex_, sync_cb_mutex_, cam_info_cb_mutex_;
-
-
-    // Service to set a task number through the terminal
-    bool setTaskNumber( kinect_fusion::SetTask::Request &req ,kinect_fusion::SetTask::Response &res);
 
     // Extract aruco marker
     void markerDetect(const cv:: Mat& srs_image, const sensor_msgs::CameraInfoPtr &cam_info_ptr, tf::Transform &dstTF, int marker_id, double marker_size, std::string windows_name );

@@ -65,6 +65,7 @@ add_message_files(
    DIRECTORY srv
    FILES
    SetTF.srv
+   set_depth.srv
  )
 
 ## Generate actions in the 'action' folder
