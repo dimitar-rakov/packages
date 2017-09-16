@@ -8,15 +8,17 @@
     <arg name="obstacles_objects_topic"                     default="/obstacle_detector/obstacle_objects"/>
     <arg name="robot_objects_topic"                         default="/obstacle_detector/robot_objects"/>
     <arg name="robot_command_topic"                         default="/lwr/joint_trajectory_controller/command"/>
+    <arg name="robot_trajectory_action_topic"               default="/lwr/joint_trajectory_controller/follow_joint_trajectory"/>
     <arg name="using_external_set_point"                    default="false"/>
     <arg name="using_combined_matrices"                     default="true"/>
     <arg name="using_transpose_jacobian"                    default="false"/>
     <arg name="enb_obstacle_avoidance"                      default="true"/>
     <arg name="test_only_obstacle_avoidance"                default="false"/>
     <arg name="using_multiple_colision_points"              default="true"/>
-    <arg name="v_max"                                       default="0.5"/>
+    <arg name="v_max"                                       default="1.0"/>
     <arg name="alpha"                                       default="7.0"/>
     <arg name="ro_1"                                        default="1.0"/>
+    <arg name="ro_2"                                        default="0.8"/>
     <arg name="gama_simple"                                 default="[2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]"/> <!-- gama_simple -->
     <arg name="gama_1_0a"                                   default="[2.0, 2.0, 30.0, 50.0, 50.0, 1.5]"/>
     <arg name="gama_1_0s"                                   default="[2.0, 2.0, 50.0, 2000.0, 2000.0, 1.5]"/>
@@ -24,8 +26,9 @@
     <arg name="gama_1_1s"                                   default="[2.0, 2.0, 50.0, 50.0, 50.0, 1.5]"/>
     <arg name="gama_1_2a"                                   default="[2.0, 2.0, 50.0, 50.0, 70.0, 1.5]"/>
     <arg name="gama_1_2s"                                   default="[2.0, 2.0, 80.0, 100.0, 100.0, 1.5]"/>
-    <arg name="gama_1_3a"                                   default="[2.0, 2.0, 50.0, 70.0, 70.0, 1.5]"/>
-    <arg name="gama"                                        default="[2.0, 2.0, 80.0, 70.0, 70.0, 1.5]"/> <!-- gama_1_3s -->
+    <arg name="gama_1_3a"                                   default="[2.0, 2.0, 50.0, 50.0, 70.0, 1.5]"/>
+    <arg name="gama_a"                                      default="[2.0, 2.0, 5.0, 10.0, 10.0, 1.5]"/> <!-- gama_1_2a real -->
+    <arg name="gama_s"                                      default="[2.0, 2.0, 20.0, 20.0, 20.0, 1.5]"/> <!-- gama_1_2s real -->
 
 
     <node name="$(arg base_name)" pkg="imbvs_with_obstacles_avoidance" type="imbvs_with_obstacles_avoidance_node" respawn="false" output="screen">
@@ -38,6 +41,7 @@
         <param name="obstacles_objects_topic"               type="str"    value="$(arg obstacles_objects_topic)"/>
         <param name="robot_objects_topic"                   type="str"    value="$(arg robot_objects_topic)"/>
         <param name="robot_command_topic"                   type="str"    value="$(arg robot_command_topic)"/>
+        <param name="robot_trajectory_action_topic"         type="str"    value="$(arg robot_trajectory_action_topic)"/>
         <param name="using_external_set_point"              type="bool"   value="$(arg using_external_set_point)"/>
         <param name="using_combined_matrices"               type="bool"   value="$(arg using_combined_matrices)"/>
         <param name="using_transpose_jacobian"              type="bool"   value="$(arg using_transpose_jacobian)"/>
@@ -47,6 +51,7 @@
         <param name="v_max"                                 type="double" value="$(arg v_max)"/>
         <param name="alpha"                                 type="double" value="$(arg alpha)"/>
         <param name="ro_1"                                  type="double" value="$(arg ro_1)"/>
+        <param name="ro_2"                                  type="double" value="$(arg ro_2)"/>
         <rosparam param="gama"                              subst_value="True">$(arg gama)</rosparam>
     </node>
 

@@ -207,7 +207,6 @@ void ObstacleDetector::update(const ros::Time& time, const ros::Duration& period
 
     // Build a robot filter fixed objects (fixed coordinates)
     filter_robot_objects_fixed_.markers.clear();
-    env_octree_resolution_ = obs_octree_resolution_;
     for(size_t i = 0; i< filter_robot_objects_.markers.size(); i++){
       int tf_idx =  -1;
       for(size_t j = 0; j< tf_names_.size(); j++){
@@ -224,8 +223,6 @@ void ObstacleDetector::update(const ros::Time& time, const ros::Duration& period
           marker.id += 1000;
           marker.header.stamp = ros::Time();
           filter_robot_objects_fixed_.markers.push_back(marker);
-          env_octree_resolution_ = std::max(env_octree_resolution_, std::max(marker.scale.x, marker.scale.y ));
-          env_octree_resolution_ = std::max(env_octree_resolution_, marker.scale.z );
         }
       }
 
@@ -451,109 +448,70 @@ void ObstacleDetector::getFilterObjectsParameters(XmlRpc::XmlRpcValue &obj, visu
 
 void ObstacleDetector::filterBoxOut(const visualization_msgs::Marker &filter_object, const pcl::PointCloud<pcl::PointXYZ>::Ptr &ptr_in_cloud, pcl::PointCloud<pcl::PointXYZ>::Ptr &ptr_filtered_cloud){
 
-  //  // Passtrough filters to build box inliers / outliers (faster than cropbox and conditional remove)
-  //  pcl::PassThrough<pcl::PointXYZ> pass;
-  //  pcl::ExtractIndices<pcl::PointXYZ> extract;
-  //  pass.setInputCloud (ptr_in_cloud);
-  //  extract.setInputCloud (ptr_in_cloud);
-  //  pass.setFilterFieldName ("x");
-  //  double min =  filter_object.pose.position.x - 0.5 * filter_object.scale.x;
-  //  double max =  filter_object.pose.position.x + 0.5 * filter_object.scale.x;
-  //  pass.setFilterLimits (min, max);
-  //  pcl::PointIndices::Ptr indices_x (new pcl::PointIndices);
-  //  pass.filter (indices_x->indices);
+    // Passtrough filters to build box inliers / outliers (faster than cropbox and conditional remove)
+    pcl::PassThrough<pcl::PointXYZ> pass;
+    pcl::ExtractIndices<pcl::PointXYZ> extract;
+    pass.setInputCloud (ptr_in_cloud);
+    extract.setInputCloud (ptr_in_cloud);
+    pass.setFilterFieldName ("x");
+    double min =  filter_object.pose.position.x - 0.5 * filter_object.scale.x;
+    double max =  filter_object.pose.position.x + 0.5 * filter_object.scale.x;
+    pass.setFilterLimits (min, max);
+    pcl::PointIndices::Ptr indices_x (new pcl::PointIndices);
+    pass.filter (indices_x->indices);
 
-  //  min =  filter_object.pose.position.y - 0.5 * filter_object.scale.y;
-  //  max =  filter_object.pose.position.y + 0.5 * filter_object.scale.y;
-  //  pass.setIndices(indices_x);
-  //  pass.setFilterFieldName ("y");
-  //  pass.setFilterLimits (min, max);
-  //  pcl::PointIndices::Ptr indices_y (new pcl::PointIndices);
-  //  pass.filter (indices_y->indices);
+    min =  filter_object.pose.position.y - 0.5 * filter_object.scale.y;
+    max =  filter_object.pose.position.y + 0.5 * filter_object.scale.y;
+    pass.setIndices(indices_x);
+    pass.setFilterFieldName ("y");
+    pass.setFilterLimits (min, max);
+    pcl::PointIndices::Ptr indices_y (new pcl::PointIndices);
+    pass.filter (indices_y->indices);
 
-  //  min =  filter_object.pose.position.z - 0.5 * filter_object.scale.z;
-  //  max =  filter_object.pose.position.z + 0.5 * filter_object.scale.z;
-  //  pass.setIndices(indices_y);
-  //  pass.setFilterFieldName ("z");
-  //  pass.setFilterLimits (min, max);
-  //  pcl::PointIndices::Ptr indices_z (new pcl::PointIndices);
-  //  pass.filter (indices_z->indices);
+    min =  filter_object.pose.position.z - 0.5 * filter_object.scale.z;
+    max =  filter_object.pose.position.z + 0.5 * filter_object.scale.z;
+    pass.setIndices(indices_y);
+    pass.setFilterFieldName ("z");
+    pass.setFilterLimits (min, max);
+    pcl::PointIndices::Ptr indices_z (new pcl::PointIndices);
+    pass.filter (indices_z->indices);
 
-  //  if (filter_object.text == std::string("KEEP")){
-  //    extract.setIndices (indices_z);
-  //    extract.setNegative (false);
-  //    extract.filter (*ptr_filtered_cloud);
-  //  }
-  //  else if (filter_object.text == std::string("REMOVE")){
-  //    extract.setIndices (indices_z);
-  //    extract.setNegative (true);
-  //    extract.filter (*ptr_filtered_cloud);
-  //  }
-
-
-  // Remove the inliers, extract the rest
-  pcl::ExtractIndices<pcl::PointXYZ> extract;
-  pcl::PointIndices::Ptr indices (new pcl::PointIndices);
-  pcl::octree::OctreePointCloudSearch<pcl::PointXYZ>::Ptr octree_ptr(new pcl::octree::OctreePointCloudSearch<pcl::PointXYZ>(env_octree_resolution_));
-  double min_x = filter_object.pose.position.x - 0.5 * filter_object.scale.x;
-  double max_x = filter_object.pose.position.x + 0.5 * filter_object.scale.x;
-  double min_y = filter_object.pose.position.y - 0.5 * filter_object.scale.y;
-  double max_y = filter_object.pose.position.y + 0.5 * filter_object.scale.y;
-  double min_z = filter_object.pose.position.z - 0.5 * filter_object.scale.z;
-  double max_z = filter_object.pose.position.z + 0.5 * filter_object.scale.z;
-  Eigen::Vector3f min_pt = Eigen::Vector3f(min_x, min_y, min_z);
-  Eigen::Vector3f max_pt = Eigen::Vector3f(max_x, max_y, max_z);
-
-  octree_ptr->setInputCloud (ptr_in_cloud);
-  octree_ptr->addPointsFromInputCloud();
-  octree_ptr->boxSearch 	(min_pt,	max_pt,	indices->indices ) ;
-  extract.setInputCloud (ptr_in_cloud);
-  extract.setIndices (indices);
-  extract.setNegative (filter_object.text == std::string("REMOVE"));
-  extract.filter (*ptr_filtered_cloud);
-
+    if (filter_object.text == std::string("KEEP")){
+      extract.setIndices (indices_z);
+      extract.setNegative (false);
+      extract.filter (*ptr_filtered_cloud);
+    }
+    else if (filter_object.text == std::string("REMOVE")){
+      extract.setIndices (indices_z);
+      extract.setNegative (true);
+      extract.filter (*ptr_filtered_cloud);
+    }
 }
 
 
 void ObstacleDetector::filterSphereOut(const visualization_msgs::Marker &filter_objects, const pcl::PointCloud<pcl::PointXYZ>::Ptr &ptr_in_cloud, pcl::PointCloud<pcl::PointXYZ>::Ptr &ptr_filtered_cloud){
 
-  //  /// check if point is inside of any of safety spheres
-  //  float xc = static_cast<float>(filter_objects.pose.position.x);
-  //  float yc = static_cast<float>(filter_objects.pose.position.y);
-  //  float zc = static_cast<float>(filter_objects.pose.position.z);
-  //  float inv_a = static_cast<float>(1/(0.5 * filter_objects.scale.x));
-  //  float inv_b = static_cast<float>(1/(0.5 * filter_objects.scale.y));
-  //  float inv_c = static_cast<float>(1/(0.5 * filter_objects.scale.z));
-  //  pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
+    /// check if point is inside of any of safety spheres
+    float xc = static_cast<float>(filter_objects.pose.position.x);
+    float yc = static_cast<float>(filter_objects.pose.position.y);
+    float zc = static_cast<float>(filter_objects.pose.position.z);
+    float inv_a = static_cast<float>(1/(0.5 * filter_objects.scale.x));
+    float inv_b = static_cast<float>(1/(0.5 * filter_objects.scale.y));
+    float inv_c = static_cast<float>(1/(0.5 * filter_objects.scale.z));
+    pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
 
-  //  for (size_t j = 0; j < filtered_cloud_ptr_->size(); j++){
-  //    float   x = filtered_cloud_ptr_->points[j].x;
-  //    float   y = filtered_cloud_ptr_->points[j].y;
-  //    float   z = filtered_cloud_ptr_->points[j].z;
+    for (size_t j = 0; j < filtered_cloud_ptr_->size(); j++){
+      float   x = filtered_cloud_ptr_->points[j].x;
+      float   y = filtered_cloud_ptr_->points[j].y;
+      float   z = filtered_cloud_ptr_->points[j].z;
 
-  //    // Sphere or elipsoid inliers
-  //    if(pow( inv_a * (x - xc), 2) + pow(inv_b * (y - yc), 2) + pow(inv_c * (z - zc), 2)  <= 1)
-  //      inliers->indices.push_back(j);
-  //  }
-  //  // Remove the planar inliers, extract the rest
-  //  pcl::ExtractIndices<pcl::PointXYZ> extract;
-  //  extract.setInputCloud (ptr_in_cloud);
-  //  extract.setIndices (inliers);
-  //  extract.setNegative (filter_objects.text == std::string("REMOVE"));
-  //  extract.filter (*ptr_filtered_cloud);
+      // Sphere or elipsoid inliers
+      if(pow( inv_a * (x - xc), 2) + pow(inv_b * (y - yc), 2) + pow(inv_c * (z - zc), 2)  <= 1)
+        inliers->indices.push_back(j);
+    }
 
-  pcl::octree::OctreePointCloudSearch<pcl::PointXYZ>::Ptr octree_ptr(new pcl::octree::OctreePointCloudSearch<pcl::PointXYZ>(env_octree_resolution_));
-  pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
+  // Remove inliers, extract the rest
   pcl::ExtractIndices<pcl::PointXYZ> extract;
-  pcl::PointXYZ query_point;
-  std::vector< float > k_sqr_distances;
-  query_point.x= static_cast<float>(filter_objects.pose.position.x);
-  query_point.y = static_cast<float>(filter_objects.pose.position.y);
-  query_point.z = static_cast<float>(filter_objects.pose.position.z);
-
-  octree_ptr->setInputCloud (ptr_in_cloud);
-  octree_ptr->addPointsFromInputCloud();
-  octree_ptr->radiusSearch(query_point, filter_objects.scale.x, inliers->indices, k_sqr_distances);
   extract.setInputCloud (ptr_in_cloud);
   extract.setIndices (inliers);
   extract.setNegative (filter_objects.text == std::string("REMOVE"));

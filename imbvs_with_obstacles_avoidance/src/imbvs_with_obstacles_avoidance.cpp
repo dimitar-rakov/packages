@@ -34,6 +34,7 @@ bool ImbvsWithObstaclesAvoidance::init(ros::NodeHandle &n)
   des_features_status_ = -1;
 
   cmd_flag_ = 0;
+  interaction_active =false;
   num_released_features_ = 3;
 
 
@@ -138,6 +139,7 @@ bool ImbvsWithObstaclesAvoidance::init(ros::NodeHandle &n)
   joint_limits_.center.resize(joint_number_);
   joint_limits_.velocity.resize(joint_number_);
   joint_limits_.acceleration.resize(joint_number_);
+  joint_limits_.jerk.resize(joint_number_);
   joint_limits_.effort.resize(joint_number_);
 
   unsigned int index;
@@ -191,6 +193,12 @@ bool ImbvsWithObstaclesAvoidance::init(ros::NodeHandle &n)
     ROS_WARN("Parameter robot_command_topic was not found. Default topic's name is used: %s ", robot_command_topic_.c_str());
   }
 
+  // Get robot_trajectory_action_topic  from parameter server
+  if (!nh_.getParam("robot_trajectory_action_topic", robot_trajectory_action_topic_)){
+    nh_.param("robot_trajectory_action_topic", robot_trajectory_action_topic_, std::string ("lwr/joint_trajectory_controller/follow_joint_trajectory"));
+    ROS_WARN("Parameter robot_trajectory_action_topic was not found. Default topic's name is used: %s ", robot_trajectory_action_topic_.c_str());
+  }
+
   // Get using_external_set_point  from parameter server
   if (!nh_.getParam("using_external_set_point", using_external_set_point_)){
     nh_.param("using_external_set_point", using_external_set_point_, false);
@@ -233,6 +241,16 @@ bool ImbvsWithObstaclesAvoidance::init(ros::NodeHandle &n)
     ROS_WARN("Parameter ro_1 was not found. Default value is used: %lf", ro1_);
   }
 
+  // Get ro_1  from parameter server
+  if (!nh_.getParam("ro_2", ro2_)){
+    nh_.param("ro_2", ro2_, ro1_- 0.2*ro1_);
+    ROS_WARN("Parameter ro_2 was not found. Default value is used: %lf", ro2_);
+  }
+  else if (ro2_>ro1_){
+    ro2_ = ro1_- 0.2*ro1_;
+    ROS_WARN("Parameter ro_2 muss be less than ro1. Default value is used: %lf", ro2_);
+  }
+
   // Get v_max from parameter server
   if (!nh_.getParam("v_max", Vmax_)){
     nh_.param("v_max", Vmax_, 0.5);
@@ -267,6 +285,7 @@ bool ImbvsWithObstaclesAvoidance::init(ros::NodeHandle &n)
   joint_msr_states_.resize(joint_number_);
   joint_des_states_.resize(joint_number_);
   joint_des_states_prev_.resize(joint_number_);
+  joint_init_interaction_states_.resize(joint_number_);
   trajPoints_.positions.resize(joint_number_);
   trajPoints_.velocities.resize(joint_number_);
 
@@ -290,6 +309,17 @@ bool ImbvsWithObstaclesAvoidance::init(ros::NodeHandle &n)
   pub_all_data_ = nh_.advertise<std_msgs::Float64MultiArray>(nh_.getNamespace()+"/all_data", 5);
   pub_joint_traj_ = nh_.advertise<trajectory_msgs::JointTrajectory>( robot_command_topic_, 5 );
   pub_rep_vec_marker_ = nh_.advertise<visualization_msgs::Marker>(nh_.getNamespace()+"/repulsive_vector", 5 );
+
+
+  if (USE_TRAJ_CLIENT){
+  // Initialize traj_client
+  traj_client_ptr_.reset(new actionlib::SimpleActionClient< control_msgs::FollowJointTrajectoryAction >(robot_trajectory_action_topic_, true));
+
+  // wait for action server to come up
+  while(!traj_client_ptr_->waitForServer(ros::Duration(5.0)))
+    ROS_INFO_THROTTLE(1, "Waiting for the joint_trajectory_action server");
+  }
+
   ROS_INFO ("ImbvsWithObstaclesAvoidance with a name %s is initialized", base_name_.c_str());
   return true;
 }
@@ -327,12 +357,12 @@ void ImbvsWithObstaclesAvoidance::update(const ros::Time& time, const ros::Durat
   if ((ros::Time::now()- safety_ton_msr_features_).toSec()> 2.0 && msr_features_status_> -1){ msr_features_status_= 0; }
   if (msr_features_status_ == 0) ROS_WARN("Measured features's topic is not longer available");
   else if (msr_features_status_ == -1) ROS_WARN_THROTTLE(5, "Waiting for measured features's topic");
-  else if (msr_features_status_ == 1) ROS_WARN_THROTTLE(5, "Measured features are out of FOV");
+  else if (msr_features_status_ == 1) ROS_WARN_THROTTLE(2, "Measured features are out of FOV");
 
   if ((ros::Time::now()- safety_ton_des_features_).toSec()> 2.0 && des_features_status_> -1){ des_features_status_= 0; }
   if (des_features_status_ == 0) ROS_WARN("Desired features's topic is not longer available");
   else if (des_features_status_ == -1) ROS_WARN_THROTTLE(5, "Waiting for desired features's topic");
-  else if (des_features_status_ == 1) ROS_WARN_THROTTLE(5, "Desired features are out of FOV");
+  else if (des_features_status_ == 1) ROS_WARN_THROTTLE(2, "Desired features are out of FOV");
 
   // use   msr joint positions  to
   if (joints_state_status_ == 2 && getTFs())
@@ -367,7 +397,18 @@ void ImbvsWithObstaclesAvoidance::update(const ros::Time& time, const ros::Durat
 
     // computing J_pinv_ce_
     pseudo_inverse(Jce_.data, J_pinv_ce_);
+    joint_des_states_prev_.q.data = joint_des_states_.q.data;
+    joint_des_states_prev_.qdot.data = joint_des_states_.qdot.data;
+    joint_des_states_.qdot.data =  Eigen::VectorXd::Zero(joint_number_);  // do not move if there is no setpoint
 
+    // Safety common part
+    if (enb_obstacle_avoidance_ && obstacles_obj_status_ == 1 && robot_obj_status_ == 1){
+      obstaclesProcesing(min_dist_ , max_ni1_);
+      cmd_flag_ = (min_dist_< ro1_); // start control if obstacle appears
+      ROS_WARN("Command because of obstacle avoidance");
+    }
+
+    // imbvs with obstacles avoidance
     if (msr_features_status_ ==2 && des_features_status_ ==2 && cmd_flag_ ==1 && !test_only_obst_avoidance_)
     {
 //      // Simple Gain Scheduling up to 3 times
@@ -378,7 +419,7 @@ void ImbvsWithObstaclesAvoidance::update(const ros::Time& time, const ros::Durat
 //      else if ((s_des_- s_msr_).squaredNorm() >=  0.002)
 //        scaled_gama_ =  gama_;
 
-      ROS_INFO_STREAM("Norm :"<<(s_des_- s_msr_).squaredNorm()<< "scaled_gama_(0,0): "<<scaled_gama_(0,0));
+//      ROS_INFO_STREAM("Norm :"<<(s_des_- s_msr_).squaredNorm()<< "scaled_gama_(0,0): "<<scaled_gama_(0,0));
 
       // if it used external setpoint Lhat_msr_ = Lhat_des_
       if (using_combined_matrices_)
@@ -394,17 +435,9 @@ void ImbvsWithObstaclesAvoidance::update(const ros::Time& time, const ros::Durat
       }
 
       // For test every single features controllability
-//      s_err_dot_(0) = 0.0;
-//      s_err_dot_(1) = 0.0;
-//      s_err_dot_(2) = 0.0;
-//      s_err_dot_(3) = 0.0;
-//      s_err_dot_(4) = 0.0;
-//      s_err_dot_(5) = 0.0;
+//      s_err_dot_ << 0, 0, 0, s_err_dot_(3), 0, 0;
 
       pseudo_inverse(Lhat_*Jce_.data, Lhat_Jce_pinv_);
-      joint_des_states_prev_.q.data = joint_des_states_.q.data;
-      joint_des_states_prev_.qdot.data = joint_des_states_.qdot.data;
-
       if (enb_obstacle_avoidance_ && obstacles_obj_status_ == 1 && robot_obj_status_ == 1){
         s_err1_dot_ = s_err_dot_.head(s_err_dot_.size() - num_released_features_);
         s_err2_dot_ = s_err_dot_.tail(num_released_features_);
@@ -413,31 +446,45 @@ void ImbvsWithObstaclesAvoidance::update(const ros::Time& time, const ros::Durat
         pseudo_inverse(L1hat_*Jce_.data, L1hat_Jce_pinv_);
 
         // Safety part
-        double min_dist ,max_ni;
-        obstaclesProcesing(min_dist , max_ni);
-        ROS_WARN_COND(min_dist < ro1_,"OBSTACLES AVOIDANCE ACTIVE");
-        s_err_obs2_dot_ = ((1 - max_ni) * s_err2_dot_) + max_ni * (L2hat_* Jce_.data * L1hat_Jce_pinv_) * s_err1_dot_ ;
+        double ni2 = 1/(1 + std::exp(((std::abs(min_dist_) -ro2_) *2/ro1_ - 1) * alpha_));
+
+        // By every new interaction with obstacles store the last stable configuration
+        if ( !interaction_active && min_dist_ <= ro1_ && msr_features_status_ ==2 && des_features_status_ ==2){
+          joint_init_interaction_states_ = joint_msr_states_;
+          interaction_active = true;
+        }
+        ROS_WARN_COND(min_dist_ < ro1_,"OBSTACLES AVOIDANCE ACTIVE");
+        s_err_obs2_dot_ = ((1 - ni2) * s_err2_dot_) + ni2 * (L2hat_* Jce_.data * L1hat_Jce_pinv_) * s_err1_dot_ ;
         Eigen::MatrixXd N = (Eigen::MatrixXd::Identity(joint_number_,joint_number_) - L1hat_Jce_pinv_* (L1hat_*Jce_.data));
         s_err_obs_dot_ << s_err1_dot_, s_err_obs2_dot_;
-        joint_des_states_.qdot.data =  (Lhat_Jce_pinv_ * s_err_obs_dot_) + (max_ni * N * joint_rep_field_);
+        joint_des_states_.qdot.data =  (Lhat_Jce_pinv_ * s_err_obs_dot_) + (ni2 * N * joint_rep_field_);
         //joint_des_states_.qdot.data =  (L1hat_Jce_pinv_ * s_err1_dot_) + (N * joint_rep_field_);
       }
       else
         joint_des_states_.qdot.data =  Lhat_Jce_pinv_ * (s_err_dot_);
 
-
       // Diffferent on target criteria depending of type of s
-      if (s_msr_.size() ==6 && ( s_des_- s_msr_).squaredNorm() <  0.000001){
-        ROS_INFO("On target");
-        //cmd_flag_ = 0;
+      Eigen::MatrixXd err = s_des_- s_msr_;
+      Eigen::MatrixXd ranges = 0.0001 * Eigen::VectorXd::Ones(s_des_.size());
+      if (s_msr_.size() ==6 ){
+      ranges << 0.0002, 0.0002, 0.0002, 0.001, 0.001, 0.0001;
+        bool err_in_range = true;
+        for(size_t i = 0; i < s_msr_.size(); i++)
+           err_in_range = (err_in_range && err(i)<ranges(i) && err(i)>-ranges(i))? true : false;
+        cmd_flag_ =  (err_in_range)? 0: cmd_flag_;
+        ROS_INFO_STREAM_COND(err_in_range, "On target err: "<<err.transpose());
       }
 
-      if (s_msr_.size() ==8 && ( s_des_- s_msr_).squaredNorm() <  0.00001){
-        ROS_INFO("On target");
-        cmd_flag_ = 0;
+      if (s_msr_.size() ==8){
+        ranges << 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001;
+        bool err_in_range = true;
+        for(size_t i = 0; i < s_msr_.size(); i++)
+           err_in_range = (err_in_range && err(i)<ranges(i) && err(i)>-ranges(i))? true : false;
+        cmd_flag_ =  (err_in_range)? 0: cmd_flag_;
+        ROS_INFO_STREAM_COND(err_in_range, "On target err: "<<err.transpose());
       }
 
-      // Record data at interval 10 ms
+      // Record data at interval 10 ms (always in this case)
       if (record_interval_>= 0.010){
         recordAllData();
         record_interval_ = 0.0;
@@ -445,6 +492,28 @@ void ImbvsWithObstaclesAvoidance::update(const ros::Time& time, const ros::Durat
       else
         record_interval_ += period.toSec();
     }
+
+    // Go to the position when the obstacle interaction first occurs if it is free
+    else if (msr_features_status_ ==1 && des_features_status_ ==2 && cmd_flag_ ==1 && !test_only_obst_avoidance_){
+
+      if(interaction_active  && min_dist_ > ro1_){
+        ROS_WARN("GO TO INITIAL OBSTACLE INTERACTION POSITION ACTIVE");
+        Eigen::MatrixXd err = joint_msr_states_.q.data - joint_init_interaction_states_.q.data;
+
+        //Check error range (Eigen (a>0).all() example does not work here. Probably the Eigen version in Ubuntu 14.04 is to old )
+        bool err_in_range = true;
+        for(size_t i = 0; i < joint_number_; i++)
+           err_in_range = (err_in_range && err(i)<0.001 && err(i)>-0.001)? true : false;
+
+        // Very simple cotroller to go to stored joint states
+        if (err_in_range)
+          interaction_active = false;
+        else
+          joint_des_states_.qdot.data =  -0.3 * err;
+      }
+    }
+
+    // Test only obstacle avoidance
     else if (test_only_obst_avoidance_){
       cmd_flag_ = 1;
       testAvoidance(period);
@@ -479,11 +548,9 @@ void ImbvsWithObstaclesAvoidance::update(const ros::Time& time, const ros::Durat
     }
     ROS_INFO("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
 
-
-    trajPoints_.time_from_start = period+ros::Duration(0.002);
+    trajPoints_.time_from_start = period;
     traj_msg_.points.clear();
     traj_msg_.points.push_back(trajPoints_);
-
   }
 }
 
@@ -505,8 +572,16 @@ void ImbvsWithObstaclesAvoidance::command(const imbvs_with_obstacles_avoidance::
 }
 
 void ImbvsWithObstaclesAvoidance::publish(){
-  if (!traj_msg_.points.empty())
-    pub_joint_traj_.publish(traj_msg_);
+  if (!traj_msg_.points.empty()){
+    if (USE_TRAJ_CLIENT){
+      control_msgs::FollowJointTrajectoryGoal goal;
+      goal.trajectory = traj_msg_;
+      //goal.trajectory .header.stamp = ros::Time::now();
+      traj_client_ptr_->sendGoal(goal);
+    }
+    else
+      pub_joint_traj_.publish(traj_msg_);
+  }
   if (!all_data_msg.data.empty())
     pub_all_data_.publish (all_data_msg);
 }
@@ -529,7 +604,7 @@ void ImbvsWithObstaclesAvoidance::featureExtractorCB(const imbvs_with_obstacles_
       if (msr_features_status_ ==-1)
         s_msr_(i) = msg.s_msr[i];
       else
-        s_msr_(i) = filters::exponentialSmoothing(msg.s_msr[i], s_msr_(i), 0.5);
+        s_msr_(i) = filters::exponentialSmoothing(msg.s_msr[i], s_msr_(i), 0.25);
     }
     for (size_t r = 0; r< msg.rowsLmsr; r++){
       for (size_t c = 0; c< msg.colsLmsr; c++)
@@ -723,8 +798,6 @@ void ImbvsWithObstaclesAvoidance::calcObjectsFrames(std::vector< size_t > &joint
 void ImbvsWithObstaclesAvoidance::calcMinDistances(){
   KDL::Vector min_distance_vector;
   KDL::Vector Pb_os_min, Pb_rs_min;
-  joint_rep_field_prev_ = joint_rep_field_;
-  joint_rep_field_ = Eigen::VectorXd::Zero(7);
   double min_dist = 10000; //initialize with 10000 meters away
 
   for (size_t j = 0; j< Fbs_.size(); j++){
@@ -762,19 +835,19 @@ void ImbvsWithObstaclesAvoidance::calcMinDistances(){
       Pb_rs_min_[j] = Pb_rs_min;
     }
     else{
-      Pb_os_min_[j](0) = filters::exponentialSmoothing(Pb_os_min(0), Pb_os_min_[j](0), 0.8);
-      Pb_os_min_[j](1) = filters::exponentialSmoothing(Pb_os_min(1), Pb_os_min_[j](1), 0.8);
-      Pb_os_min_[j](2) = filters::exponentialSmoothing(Pb_os_min(2), Pb_os_min_[j](2), 0.8);
-      Pb_rs_min_[j](0) = filters::exponentialSmoothing(Pb_rs_min(0), Pb_rs_min_[j](0), 0.8);
-      Pb_rs_min_[j](1) = filters::exponentialSmoothing(Pb_rs_min(1), Pb_rs_min_[j](1), 0.8);
-      Pb_rs_min_[j](2) = filters::exponentialSmoothing(Pb_rs_min(2), Pb_rs_min_[j](2), 0.8);
+      Pb_os_min_[j](0) = filters::exponentialSmoothing(Pb_os_min(0), Pb_os_min_[j](0), 0.9);
+      Pb_os_min_[j](1) = filters::exponentialSmoothing(Pb_os_min(1), Pb_os_min_[j](1), 0.9);
+      Pb_os_min_[j](2) = filters::exponentialSmoothing(Pb_os_min(2), Pb_os_min_[j](2), 0.9);
+      Pb_rs_min_[j](0) = filters::exponentialSmoothing(Pb_rs_min(0), Pb_rs_min_[j](0), 0.9);
+      Pb_rs_min_[j](1) = filters::exponentialSmoothing(Pb_rs_min(1), Pb_rs_min_[j](1), 0.9);
+      Pb_rs_min_[j](2) = filters::exponentialSmoothing(Pb_rs_min(2), Pb_rs_min_[j](2), 0.9);
     }
 
   }
 }
 
 
-void ImbvsWithObstaclesAvoidance::obstaclesProcesing(double &dst_min_dist, double &dst_max_ni){
+void ImbvsWithObstaclesAvoidance::obstaclesProcesing(double &dst_min_dist, double &dst_max_ni1){
 
 
   std::vector< size_t > joint_to_base_indeces;
@@ -788,16 +861,16 @@ void ImbvsWithObstaclesAvoidance::obstaclesProcesing(double &dst_min_dist, doubl
   joint_rep_field_ = Eigen::VectorXd::Zero(7);
 
   double min_dist = 10000; //initialize with 10000 meters away
-  double max_ni = 0.0;
+  double max_ni1 = 0.0;
   size_t min_dist_idx = 0;
 
   for (size_t j = 0; j< Fbs_.size(); j++){
     KDL::Vector dist_vec_surfaces = Pb_os_min_[j] - Pb_rs_min_[j];
     double dist_surfaces = std::abs((dist_vec_surfaces).Norm());
-    double ni = Vmax_/(1 + std::exp((std::abs(dist_surfaces) *2/ro1_ - 1) * alpha_));
+    double ni1 = 1/(1 + std::exp((std::abs(dist_surfaces) *2/ro1_ - 1) * alpha_));
     if (min_dist > dist_surfaces){
       min_dist = dist_surfaces;
-      max_ni = ni;
+      max_ni1 = ni1;
       min_dist_idx= j;
     }
 
@@ -812,7 +885,7 @@ void ImbvsWithObstaclesAvoidance::obstaclesProcesing(double &dst_min_dist, doubl
       V(0) = dist_vec_surfaces(0),
       V(1) = dist_vec_surfaces(1),
       V(2) = dist_vec_surfaces(2),
-      Vrep = (ni / dist_surfaces) * V;
+      Vrep = (Vmax_*ni1 / dist_surfaces) * V;
       if (using_transpose_jacobian_)
         joint_rep_field_ += - Jb_ss.data.transpose() * Vrep;
       else {
@@ -833,7 +906,7 @@ void ImbvsWithObstaclesAvoidance::obstaclesProcesing(double &dst_min_dist, doubl
       V(0) = min_dist_vec_surfaces(0),
       V(1) = min_dist_vec_surfaces(1),
       V(2) = min_dist_vec_surfaces(2),
-      Vrep = (max_ni / min_dist) * V;
+      Vrep = (max_ni1 / min_dist) * V;
       if (using_transpose_jacobian_)
         joint_rep_field_ = -Jb_ss.data.transpose() * Vrep;
       else {
@@ -845,9 +918,9 @@ void ImbvsWithObstaclesAvoidance::obstaclesProcesing(double &dst_min_dist, doubl
 
   // Exponential smoothing filter for joint_rep_field_. Values closer to 0 weight the last smoothed value more heavily
   for (long i = 0; i< joint_rep_field_.size(); i++)
-    joint_rep_field_(i) = filters::exponentialSmoothing(joint_rep_field_(i), joint_rep_field_prev_(i), 0.1);
+    joint_rep_field_(i) = filters::exponentialSmoothing(joint_rep_field_(i), joint_rep_field_prev_(i), 0.2);
   dst_min_dist = min_dist;
-  dst_max_ni = max_ni;
+  dst_max_ni1 = max_ni1;
 
   if (markers_robot_objects_.markers.size()){
     // Publish the vector which repesents the closest to robot obstacle
@@ -935,7 +1008,7 @@ bool ImbvsWithObstaclesAvoidance::getTFs(){
        x_err_obs_dot << x_err1_dot, x_err_obs2_dot;
        if(min_dist < ro1_){
         //joint_des_states_.qdot.data =  (Jbe_pin * x_err_obs_dot) + (max_ni * N * joint_rep_field_);
-        joint_des_states_.qdot.data =  joint_rep_field_;
+        joint_des_states_.qdot.data =  ( Jbe_pin * x_err_dot) + joint_rep_field_;
        }
        else
         joint_des_states_.qdot.data =  ( Jbe_pin * x_err_dot);

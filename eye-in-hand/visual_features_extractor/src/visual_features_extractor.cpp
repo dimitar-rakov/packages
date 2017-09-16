@@ -153,34 +153,40 @@ bool VisualFeaturesExtractor::init(ros::NodeHandle &nh){
   x_.resize(num_features_);
   y_.resize(num_features_);
 
-  //sim features wrt to world default
-  TFwsf_.setOrigin(tf::Vector3( 0.0,  1.50,  0.75));
-  TFwsf_.setRotation(tf::createQuaternionFromRPY(M_PI_2,  0,  0));
+  //sim features wrt to ics world  default
+  //    TFwsf_.setOrigin(tf::Vector3( 0.0,  1.50,  0.75));
+  //    TFwsf_.setRotation(tf::createQuaternionFromRPY(M_PI_2,  0,  0));
 
-  //sim features wrt to world (on bottom)
-  TFwsf_.setOrigin(tf::Vector3( 0.0,  0.65,  0.0));
-  TFwsf_.setRotation(tf::createQuaternionFromRPY( 0.0,  0,  0));
+  //sim features wrt to ics world (on bottom)
+  //    TFwsf_.setOrigin(tf::Vector3( 0.0,  0.65,  0.0));
+  //    TFwsf_.setRotation(tf::createQuaternionFromRPY( 0.0,  0,  0));
 
-  //sim features wrt to world (on top)
+  //sim features wrt to ics world (on top)
   //    TFwsf_.setOrigin(tf::Vector3(0.0, 0.65, 2.5));
   //    TFwsf_.setRotation(tf::createQuaternionFromRPY(M_PI, 0, 0));
 
-  //sim features wrt to world (on left)
+  //sim features wrt to ics world (on left)
   //    TFwsf_.setOrigin(tf::Vector3(1.25, 0.65, 1.25));
   //    TFwsf_.setRotation(tf::createQuaternionFromRPY(M_PI_2, 0, -M_PI_2));
 
-  //sim features wrt to world (on right)
+  //sim features wrt to ics world (on right)
   //    TFwsf_.setOrigin(tf::Vector3(-1.25, 0.65, 1.25));
   //    TFwsf_.setRotation(tf::createQuaternionFromRPY(M_PI_2, 0, M_PI_2));
 
+  //sim features wrt to hri world  default
+  TFwsf_.setOrigin(tf::Vector3( 0.0,  -0.20,  0.85));
+  TFwsf_.setRotation(tf::createQuaternionFromRPY(0,  0,  0));
+
+
+  //Kept only for test
   TFwe_.setOrigin(tf::Vector3( 0.0297,  0.7406,  0.8944));
   TFwe_.setRotation(tf::Quaternion( 0.707106781,  0.707106781,  0.000,  0.000));
 
 
   simVisualFeaturesTFs();
 
-  //desired features wrt to image  default
-  TFcdf_.setOrigin(tf::Vector3( 320.0,  240.0,  0.0));
+  //desired features wrt to image  default in the center
+  TFcdf_.setOrigin(tf::Vector3( 0.5 * cam_param_.width,  0.5 * cam_param_.height,  0.0));
   TFcdf_.setRotation(tf::createQuaternionFromRPY( 0.0,  0.0,  0.0));
   desVisualFeaturesTFs();
 
@@ -198,7 +204,7 @@ bool VisualFeaturesExtractor::init(ros::NodeHandle &nh){
   srv_set_des_template_ = nh_.advertiseService(nh_.getNamespace()+"/set_desired_template", &VisualFeaturesExtractor::setDesiredTemplate, this);
   srv_start_features_rotation_ = nh_.advertiseService(nh_.getNamespace()+"/start_features_rotation", &VisualFeaturesExtractor::startFeaturesRotation, this);
 
-  Z_des_ =0.68; // desired
+  Z_des_ =0.55; // desired
 
   ROS_INFO ("VisualFeaturesExtractor with a name %s is initialized", base_name_.c_str());
   return true;
@@ -222,6 +228,8 @@ void VisualFeaturesExtractor::update(const ros::Time& time, const ros::Duration&
 
   if (getTFs()){
 
+
+    /// For Test only \todo {Remove}
     if (enb_rotation_){
       TFwsf_= TFwsf_ * tf::Transform(tf::createQuaternionFromYaw( -0.004), tf::Vector3( 0.0,  0.0,  0.0));
       simVisualFeaturesTFs();
@@ -317,9 +325,9 @@ void VisualFeaturesExtractor::update(const ros::Time& time, const ros::Duration&
         else if (extended_features_var_==1.1)
           calcExtendedSymmetricalV1_1(s_des_, Lhat_des_);
         else if (extended_features_var_==1.2)
-          calcExtendedSymmetricalV1_1(s_des_, Lhat_des_);
+          calcExtendedSymmetricalV1_2(s_des_, Lhat_des_);
         else if (extended_features_var_==1.3)
-          calcExtendedSymmetricalV1_1(s_des_, Lhat_des_);
+          calcExtendedSymmetricalV1_3(s_des_, Lhat_des_);
       }
       else if (using_extended_features_ && !using_symmetrical_features_){
         if (extended_features_var_==1.0)
@@ -417,6 +425,10 @@ void VisualFeaturesExtractor::update(const ros::Time& time, const ros::Duration&
   visualFeatureMsg_.header.stamp = ros::Time::now();
   visualFeatureMsg_.numFeatures = num_features_;
   pub_vis_features_.publish(visualFeatureMsg_);
+
+  // update time for simulated features TF
+  for (size_t i = 0; i< allTFwff_.size(); i++)
+    allTFwff_[i].stamp_ = ros::Time::now();
   br_.sendTransform (allTFwff_);
 }
 
@@ -454,13 +466,6 @@ bool VisualFeaturesExtractor:: setDesiredTemplate(visual_features_extractor::set
   std::vector<std::string> founded_features_names;
   std::vector<aruco::Marker>  markers;
   if (image_status_ ==1 && !using_sim_features_){
-    // Rectify the image
-    if (!cam_param_.K.empty() && !cam_param_.D.empty()){
-      cv::Mat1d cameraMatrix = (cv::Mat1d(3, 3) << cam_param_.K[0], 0, cam_param_.K[2], 0, cam_param_.K[4], cam_param_.K[5], 0, 0, 1);
-      cv::Mat1d distCoeffs =   (cv::Mat1d(1, 5) << cam_param_.D[0], cam_param_.D[1], cam_param_.D[2], cam_param_.D[3], cam_param_.D[4]);
-      cv::undistort(in_images_ptr_->image, rect_image_, cameraMatrix, distCoeffs);
-    }
-
     if (using_colored_blobs_ ){
       findBlobsContours(rect_image_ , contours, founded_features_names);
       for (size_t i = 0; i< contours.size(); i++){
@@ -1341,47 +1346,49 @@ void VisualFeaturesExtractor::desVisualFeaturesTFs(){
   tf::Transform TF0f;
   allTFcdf_.clear();
 
+  /// Reamark set scaling factor 1.5 for the case with hri, since setup limitations 1in the case of ics
+
   if (using_symmetrical_features_){
     //top_left_features
-    TF0f.setOrigin(tf::Vector3( -41.5,  -31.0,  0.0));
+    TF0f.setOrigin(1.5*tf::Vector3( -41.5,  -31.0,  0.0));
     TF0f.setRotation(tf::createQuaternionFromRPY( 0.0,  0.0,  -M_PI_2));
     allTFcdf_.push_back(TFcdf_ * TF0f);
 
     //top_right_features
-    TF0f.setOrigin(tf::Vector3( 40.00,  -31.0,  0.0));
+    TF0f.setOrigin(1.5*tf::Vector3( 40.00,  -31.0,  0.0));
     TF0f.setRotation(tf::createQuaternionFromRPY( 0.0,  0.0,  M_PI));
     allTFcdf_.push_back(TFcdf_ * TF0f);
 
     //bottom_right_features
 
-    TF0f.setOrigin(tf::Vector3( 40.00,  29.5,  0.0));
+    TF0f.setOrigin(1.5*tf::Vector3( 40.00,  29.5,  0.0));
     TF0f.setRotation(tf::createQuaternionFromRPY( 0.0,  0.0,  M_PI_2));
     allTFcdf_.push_back(TFcdf_ * TF0f);
 
     //bottom_left_features
-    TF0f.setOrigin(tf::Vector3( -41.5,  29.5,  0.0));
+    TF0f.setOrigin(1.5*tf::Vector3( -41.5,  29.5,  0.0));
     TF0f.setRotation(tf::createQuaternionFromRPY( 0.0,  0.0,  0.0));
     allTFcdf_.push_back(TFcdf_ * TF0f);
 
   }
   else{
     //top_left_features
-    TF0f.setOrigin(tf::Vector3( -41.5,  -30.0,  0.0));
+    TF0f.setOrigin(1.5*tf::Vector3( -41.5,  -30.0,  0.0));
     TF0f.setRotation(tf::createQuaternionFromRPY( 0.0,  0.0,  -M_PI_2));
     allTFcdf_.push_back(TFcdf_ * TF0f);
 
     //top_right_features
-    TF0f.setOrigin(tf::Vector3( 39.5,  -30.0,  0.0));
+    TF0f.setOrigin(1.5*tf::Vector3( 39.5,  -30.0,  0.0));
     TF0f.setRotation(tf::createQuaternionFromRPY( 0.0,  0.0,  M_PI));
     allTFcdf_.push_back(TFcdf_ * TF0f);
 
     //bottom_right_features
-    TF0f.setOrigin(tf::Vector3( 79.9,  30.0,  0.0));
+    TF0f.setOrigin(1.5*tf::Vector3( 79.9,  30.0,  0.0));
     TF0f.setRotation(tf::createQuaternionFromRPY( 0.0,  0.0,  M_PI_2));
     allTFcdf_.push_back(TFcdf_ * TF0f);
 
     //bottom_left_features
-    TF0f.setOrigin(tf::Vector3( -41.0,  30.0,  0.0));
+    TF0f.setOrigin(1.5*tf::Vector3( -41.0,  30.0,  0.0));
     TF0f.setRotation(tf::createQuaternionFromRPY( 0.0,  0.0,  0.0));
     allTFcdf_.push_back(TFcdf_ * TF0f);
   }

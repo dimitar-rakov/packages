@@ -68,9 +68,9 @@ private:
     //std::mutex image_mutex_, points_mutex;
     boost::mutex   points_cb_mutex_;
 
-    double radius_sphere_obstacle, radius_sphere_robot_body_, env_octree_resolution_; //in meters
+    double radius_sphere_obstacle, radius_sphere_robot_body_; //in meters
     tf::TransformListener lr_;
-    std::vector<tf::Transform> TFs_, TFs_fixed_;                    //all joints TFs
+    std::vector<tf::Transform> TFs_, TFs_fixed_;              //all joints TFs
 
     visualization_msgs::MarkerArray obstacle_objects_;
     visualization_msgs::MarkerArray filter_env_objects_;

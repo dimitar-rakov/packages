@@ -14,7 +14,8 @@
 #include <sensor_msgs/JointState.h>
 #include <trajectory_msgs/JointTrajectory.h>
 #include <trajectory_msgs/JointTrajectoryPoint.h>
-
+#include <control_msgs/FollowJointTrajectoryAction.h>
+#include <actionlib/client/simple_action_client.h>
 
 #include <kdl/tree.hpp>
 #include <kdl/kdl.hpp>
@@ -30,8 +31,6 @@
 #include <boost/thread/condition.hpp>
 #include <boost/thread/mutex.hpp>
 
-
-
 // TF
 #include <tf/transform_listener.h>
 #include "tf/transform_datatypes.h"
@@ -39,12 +38,14 @@
 #include <tf_conversions/tf_kdl.h>
 #include <eigen_conversions/eigen_kdl.h>
 
-
 #include <Eigen/Dense>
 
 
 
-const static double MAX_JOINT_DES_STEP = 0.0025;  // SAFETY maximum difference between two desire
+/// SAFETY maximum difference between two desire joint position
+const static double MAX_JOINT_DES_STEP = 0.0025;
+/// using of trajectory client instead of oj just publisher
+const static bool USE_TRAJ_CLIENT = true;
 
 class ImbvsWithObstaclesAvoidance
 {
@@ -74,6 +75,7 @@ private:
     ros::NodeHandle nh_;
     KDL::Chain kdl_chain_;
     KDL::JntArrayAcc joint_msr_states_, joint_des_states_, joint_des_states_prev_;  // joint states (measured , desired )
+    KDL::JntArrayAcc joint_init_interaction_states_;        // stored joint states at initial obstacles interaction
     struct limits_
     {
         KDL::JntArray min;
@@ -81,6 +83,7 @@ private:
         KDL::JntArray center;
         KDL::JntArray velocity;
         KDL::JntArray acceleration;
+        KDL::JntArray jerk;
         KDL::JntArray effort;
     } joint_limits_;
 
@@ -92,6 +95,7 @@ private:
     ros::Subscriber sub_joint_state_;  
     ros::Publisher  pub_all_data_;
     ros::Publisher  pub_joint_traj_;
+    boost::shared_ptr <actionlib::SimpleActionClient< control_msgs::FollowJointTrajectoryAction > > traj_client_ptr_;
     ros::Publisher  pub_rep_vec_marker_;
     tf::TransformListener lr_;
 
@@ -120,7 +124,7 @@ private:
     boost::scoped_ptr<KDL::ChainFkSolverPos_recursive> fk_pos_solver_;
 
     Eigen::MatrixXd J_pinv_ce_, J_pinv_bs_ ;
-    Eigen::VectorXd joint_rep_field_, joint_rep_field_prev_, joint_rep_field_i;
+    Eigen::VectorXd joint_rep_field_, joint_rep_field_prev_;
 
 
     Eigen::VectorXd s_msr_, s_des_, s_err_obs_dot_;
@@ -131,6 +135,7 @@ private:
     Eigen::MatrixXd Lhat_Jce_pinv_;
     Eigen::MatrixXd L1hat_Jce_pinv_;
     int num_released_features_;
+    double min_dist_, max_ni1_;
 
 
     // flags for topics data. status -1 - not not received, status 0 - delayed,
@@ -150,6 +155,8 @@ private:
     unsigned int joint_number_;
     int cmd_flag_;
     double record_interval_;
+    bool interaction_active;
+
 
 
     // Parameters server variable
@@ -158,10 +165,11 @@ private:
     bool using_transpose_jacobian_;
     bool using_multiple_colision_points_;
     bool enb_obstacle_avoidance_;
-    std::string base_name_, robot_description_, root_name_, tip_name_,features_data_topic_;
-    std::string joint_states_topic_, obstacles_objects_topic_, robot_objects_topic_, robot_command_topic_ ;
+    std::string base_name_, robot_description_, root_name_, tip_name_;
+    std::string features_data_topic_, obstacles_objects_topic_, robot_objects_topic_;
+    std::string joint_states_topic_, robot_command_topic_, robot_trajectory_action_topic_;
     bool test_only_obst_avoidance_;
-    double ro1_ ;
+    double ro1_, ro2_;
     double Vmax_;
     double alpha_;
 
@@ -186,7 +194,7 @@ private:
 
     void recordAllData();
 
-    void obstaclesProcesing(double &dst_min_dist, double &dst_max_ni);
+    void obstaclesProcesing(double &dst_min_dist, double &dst_max_ni1);
 
 
     void calcObjectsFrames(std::vector<size_t> &joint_to_base_indeces);
