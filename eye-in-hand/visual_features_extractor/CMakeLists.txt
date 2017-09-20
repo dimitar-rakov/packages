@@ -33,6 +33,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   tf
   tf_conversions
+  control_toolbox
 )
 
 # Eigen
@@ -42,7 +43,7 @@ add_definitions(${EIGEN_DEFINITIONS})
 # OpenCV
 find_package(OpenCV REQUIRED)
 
-## Aruco
+# Aruco
 #SET(CMAKE_MODULE_PATH /home/dimitar/Downloads/aruco-1.3.0/build )
 find_package(aruco REQUIRED)
 

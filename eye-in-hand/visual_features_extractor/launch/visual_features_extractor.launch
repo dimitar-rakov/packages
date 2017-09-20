@@ -43,7 +43,7 @@
     <rosparam param="$(arg camera_name)"        file="$(arg camera_param_file)"         command="load"/>
   </node>
 
-  <node pkg="tf2_ros" type="static_transform_publisher" name="cam_to_end_eff" args="0.000 0.000 0.095 0.000 0.000 0.707106781 0.707106781 lwr_a6_link eye_in_hand " />
+  <node pkg="tf2_ros" type="static_transform_publisher" name="cam_to_end_eff" args="0.000 0.000 0.110 0.000 0.000 0.707106781 0.707106781 lwr_a6_link eye_in_hand " />
 
 
 </launch>

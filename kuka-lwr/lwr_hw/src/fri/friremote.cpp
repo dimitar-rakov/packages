@@ -178,9 +178,7 @@ int friRemote::doJntImpedanceControl(const float newJntPosition[LBR_MNJ],
     if ((getState() != FRI_STATE_CMD) || (!isPowerOn()))
     {
       for (int i = 0; i < LBR_MNJ; i++)
-      {
         cmd.cmd.jntPos[i]=msr.data.cmdJntPos[i]+msr.data.cmdJntPosFriOffset[i];
-      }
     }
     else
     {
@@ -212,9 +210,7 @@ int friRemote::doJntImpedanceControl(const float newJntPosition[LBR_MNJ],
   cmd_mutex_.unlock();
 
   if (flagDataExchange)
-  {
     return doDataExchange();
-  }
   return 1;
 }
 
@@ -247,37 +243,25 @@ int friRemote::doCartesianImpedanceControl(const float newCartPosition[FRI_CART_
   {
     cmd.cmd.cmdFlags|=FRI_CMD_CARTPOS;
     for ( int i = 0; i < FRI_CART_FRM_DIM; i++)
-    {
       cmd.cmd.cartPos[i]=newCartPosition[i];
-    }
   }
   if ( newCartStiff)
   {
     cmd.cmd.cmdFlags|=FRI_CMD_CARTSTIFF;
     for ( int i = 0; i < FRI_CART_VEC; i++)
-    {
       cmd.cmd.cartStiffness[i]=newCartStiff[i];
-    }
-
   }
   if ( newCartDamp)
   {
     cmd.cmd.cmdFlags|=FRI_CMD_CARTDAMP;
     for ( int i = 0; i < FRI_CART_VEC; i++)
-    {
       cmd.cmd.cartDamping[i]=newCartDamp[i];
-
-    }
   }
   if ( newAddTcpFT)
   {
     cmd.cmd.cmdFlags|=FRI_CMD_TCPFT;
-    ;
     for ( int i = 0; i < FRI_CART_VEC; i++)
-    {
       cmd.cmd.addTcpFT[i]=newAddTcpFT[i];
-
-    }
   }
 
   if (newJntNullspace)
@@ -293,9 +277,7 @@ int friRemote::doCartesianImpedanceControl(const float newCartPosition[FRI_CART_
 
   cmd_mutex_.unlock();
   if (flagDataExchange)
-  {
     return doDataExchange();
-  }
   return 1;
 }
 

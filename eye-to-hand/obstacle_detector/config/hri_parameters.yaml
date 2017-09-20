@@ -125,9 +125,9 @@ filter_env_obj:
     type: 'CUBE'
     text: 'KEEP'
     frame_id: 'world'
-    position: {x: 0.0, y: 0.2, z: 1.4 }
+    position: {x: 0.0, y: -0.1, z: 1.4 }
     rgba: {r: 0.0, g: 1.0, b: 0.0, a: 0.1 }
-    scale: {x: 2.4, y: 2.4, z: 2.4}
+    scale: {x: 2.8, y: 2.6, z: 2.4}
 
   filter_env_obj002:
     id: 11
@@ -136,15 +136,4 @@ filter_env_obj:
     frame_id: 'world'
     position: {x: 0.0, y: -0.4, z: 0.44 }
     rgba: {r: 1.0, g: 0.0, b: 0.0, a: 0.5 }
-    scale: {x: 1.7, y: 0.9, z: 0.88 }
-
-  filter_env_obj003:
-    id: 12
-    type: 'CUBE'
-    text: 'REMOVE'
-    frame_id: 'world'
-    position: {x: 0.95, y: 0.2, z: 0.6 }
-    rgba: {r: 1.0, g: 0.4, b: 0.0, a: 0.5 }
-    scale: {x: 0.5, y: 2.4, z: 1.2 }
-
-
+    scale: {x: 1.7, y: 1.0, z: 0.88 }

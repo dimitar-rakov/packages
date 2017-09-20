@@ -12,9 +12,8 @@ bool KinectFusion::init(ros::NodeHandle &nh)
 {
   // Ros node handle for the class
   nh_ = nh;
-  marker_size_ = 0.186;
-  marker_size_ = 0.265;
-  marker_id_= 66;
+  aruco_marker_size_ = 0.265;
+  aruco_marker_id_= 66; // not used
 
   // Get base_name from parameter server
   if (!nh_.getParam("base_name", base_name_)){
@@ -58,6 +57,12 @@ bool KinectFusion::init(ros::NodeHandle &nh)
     nh_.param("using_aruco", using_aruco_, false);
     ROS_WARN("Parameter using_aruco was not found. Default value is used: false");
   }
+
+  if (!nh_.getParam("aruco_marker_size", aruco_marker_size_)){
+    nh_.param("aruco_marker_size", aruco_marker_size_, 0.265);
+    ROS_WARN("Parameter aruco_marker_size was not found. Default value is used: %lf", aruco_marker_size_);
+  }
+
 
 
 
@@ -187,7 +192,7 @@ void KinectFusion::update(const ros::Time& time, const ros::Duration& period){
   /// DEBUG
   for (size_t i=0; i < in_images_ptr_.size(); i++){
     if(!in_images_ptr_[i]->image.empty() && !in_cam_info_ptr_[i]->D.empty()){
-      markerDetect(in_images_ptr_[i]->image, in_cam_info_ptr_[i], TFs_a_c_[i], marker_id_, marker_size_, std::string("Sensor ") + boost::lexical_cast<std::string>(i) );
+      markerDetect(in_images_ptr_[i]->image, in_cam_info_ptr_[i], TFs_a_c_[i], aruco_marker_id_, aruco_marker_size_, std::string("Sensor ") + boost::lexical_cast<std::string>(i) );
     }
   }
 }

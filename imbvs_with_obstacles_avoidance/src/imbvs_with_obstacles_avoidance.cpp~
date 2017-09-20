@@ -855,12 +855,12 @@ void ImbvsWithObstaclesAvoidance::calcMinDistances(){
       Pb_rs_min_[j] = Pb_rs_min;
     }
     else{
-      Pb_os_min_[j](0) = filters::exponentialSmoothing(Pb_os_min(0), Pb_os_min_[j](0), 0.8);
-          Pb_os_min_[j](1) = filters::exponentialSmoothing(Pb_os_min(1), Pb_os_min_[j](1), 0.8);
-          Pb_os_min_[j](2) = filters::exponentialSmoothing(Pb_os_min(2), Pb_os_min_[j](2), 0.8);
-          Pb_rs_min_[j](0) = filters::exponentialSmoothing(Pb_rs_min(0), Pb_rs_min_[j](0), 0.8);
-          Pb_rs_min_[j](1) = filters::exponentialSmoothing(Pb_rs_min(1), Pb_rs_min_[j](1), 0.8);
-          Pb_rs_min_[j](2) = filters::exponentialSmoothing(Pb_rs_min(2), Pb_rs_min_[j](2), 0.8);
+      Pb_os_min_[j](0) = filters::exponentialSmoothing(Pb_os_min(0), Pb_os_min_[j](0), 0.9);
+          Pb_os_min_[j](1) = filters::exponentialSmoothing(Pb_os_min(1), Pb_os_min_[j](1), 0.9);
+          Pb_os_min_[j](2) = filters::exponentialSmoothing(Pb_os_min(2), Pb_os_min_[j](2), 0.9);
+          Pb_rs_min_[j](0) = filters::exponentialSmoothing(Pb_rs_min(0), Pb_rs_min_[j](0), 0.9);
+          Pb_rs_min_[j](1) = filters::exponentialSmoothing(Pb_rs_min(1), Pb_rs_min_[j](1), 0.9);
+          Pb_rs_min_[j](2) = filters::exponentialSmoothing(Pb_rs_min(2), Pb_rs_min_[j](2), 0.9);
     }
 
   }
@@ -938,7 +938,7 @@ void ImbvsWithObstaclesAvoidance::obstaclesProcesing(double &dst_min_dist, doubl
 
   // Exponential smoothing filter for joint_rep_field_. Values closer to 0 weight the last smoothed value more heavily
   for (long i = 0; i< joint_rep_field_.size(); i++)
-    joint_rep_field_(i) = filters::exponentialSmoothing(joint_rep_field_(i), joint_rep_field_prev_(i), 0.3);
+    joint_rep_field_(i) = filters::exponentialSmoothing(joint_rep_field_(i), joint_rep_field_prev_(i), 0.2);
   dst_min_dist = min_dist;
   dst_max_ni1 = max_ni1;
 

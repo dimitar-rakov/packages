@@ -17,7 +17,7 @@ int main(int argc, char **argv)
     }
 
     ros::Time last_time = ros::Time::now(), init_time = ros::Time::now(), upd_time = ros::Time::now();
-    ros::Duration msr_period(0.0),des_period(0.100), work_period(0.100);
+    ros::Duration msr_period(0.0),des_period(0.40), work_period(0.40);
 
     while(ros::ok())
     {
