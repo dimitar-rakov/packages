@@ -155,8 +155,8 @@ private:
     unsigned int joint_number_;
     int cmd_flag_;
     double record_interval_;
-    bool interaction_active;
-
+    bool interaction_active_ ;
+    bool restoring_initial_ ;
 
 
     // Parameters server variable

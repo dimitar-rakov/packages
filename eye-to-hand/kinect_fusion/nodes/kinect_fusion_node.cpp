@@ -21,8 +21,9 @@ int main(int argc, char **argv)
     kf.init(nh);
     //ros::Timer timer = nh.createTimer(ros::Duration(0.1), boost::bind(&updateCB, _1, kf));
 
-
     ros::Time last_time = ros::Time::now(), init_time = ros::Time::now(), upd_time = ros::Time::now();
+
+    // Remark currently all fusion is done in callback, therefore des_period does not matter
     ros::Duration msr_period(0.0),des_period(0.050), work_period(0.050);
 
     ros::AsyncSpinner spinner(4);

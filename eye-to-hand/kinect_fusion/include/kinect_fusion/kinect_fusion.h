@@ -36,7 +36,7 @@
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
 
-static const int QUEUE_SIZE =2;
+static const int QUEUE_SIZE =3;
 
 
 class KinectFusion
@@ -93,6 +93,10 @@ private:
     std::string base_name_;
     std::vector<std::string> raw_images_topics_, point_topics_, cam_info_topics_;
     bool using_aruco_ ;
+    double aruco_marker_size_;
+
+    //Aruco related variables
+    int aruco_marker_id_; //not used
 
     // flags for topics data. status -1 - not not received, status 0 - delayed,
     // status 1 - receive in time and data ok, status 2 - receive in time and not valid data,
@@ -102,10 +106,6 @@ private:
     // Safety Timers for topics
     std::vector<ros::Time> safety_tons_images_, safety_tons_cam_info_;
     ros::Time safety_tons_points_;
-
-    //Aruco related variables
-    double marker_size_;
-    int marker_id_;
 
     boost::mutex image_cb_mutex_, sync_cb_mutex_, cam_info_cb_mutex_;
 

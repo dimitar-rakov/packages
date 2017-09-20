@@ -139,6 +139,9 @@ private:
     // Aruco camera parameters
     aruco::CameraParameters aruco_cam_params_;
 
+    // work features coordinates in image space
+    std::vector< cv::Point2d>work_features_coord_;
+
     // simulated features coordinates in image space
     std::vector< cv::Point2d>sim_features_coord_;
 

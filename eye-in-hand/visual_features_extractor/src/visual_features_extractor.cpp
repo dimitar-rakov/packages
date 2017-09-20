@@ -7,7 +7,9 @@
 #include "kdl/kdl.hpp"
 #include "kdl_conversions/kdl_msg.h"
 #include "tf_conversions/tf_kdl.h"
-#include "math.h"
+#include <control_toolbox/filters.h>
+#include <boost/lexical_cast.hpp>
+#include <sstream>
 
 VisualFeaturesExtractor::VisualFeaturesExtractor() :it_(nh_)
 { }
@@ -173,8 +175,8 @@ bool VisualFeaturesExtractor::init(ros::NodeHandle &nh){
   //    TFwsf_.setOrigin(tf::Vector3(-1.25, 0.65, 1.25));
   //    TFwsf_.setRotation(tf::createQuaternionFromRPY(M_PI_2, 0, M_PI_2));
 
-  //sim features wrt to hri world  default
-  TFwsf_.setOrigin(tf::Vector3( 0.0,  -0.20,  0.85));
+  // sim features wrt to hri world  default
+  TFwsf_.setOrigin(tf::Vector3( 0.0,  -0.23,  0.78));
   TFwsf_.setRotation(tf::createQuaternionFromRPY(0,  0,  0));
 
 
@@ -204,7 +206,7 @@ bool VisualFeaturesExtractor::init(ros::NodeHandle &nh){
   srv_set_des_template_ = nh_.advertiseService(nh_.getNamespace()+"/set_desired_template", &VisualFeaturesExtractor::setDesiredTemplate, this);
   srv_start_features_rotation_ = nh_.advertiseService(nh_.getNamespace()+"/start_features_rotation", &VisualFeaturesExtractor::startFeaturesRotation, this);
 
-  Z_des_ =0.55; // desired
+  Z_des_ =0.54; // desired
 
   ROS_INFO ("VisualFeaturesExtractor with a name %s is initialized", base_name_.c_str());
   return true;
@@ -242,12 +244,14 @@ void VisualFeaturesExtractor::update(const ros::Time& time, const ros::Duration&
     }
 
 
+    ros::Time tic = ros::Time::now();
     calcFeaturesImageCoord();
     std::vector<cv::Point2d> features_coord;
     std::vector<std::vector<cv::Point> > contours;
     std::vector<std::string> founded_features_names;
     std::vector<aruco::Marker>  markers;
     if (image_status_ ==1 && !using_sim_features_){
+      tic = ros::Time::now();
       // Rectify the image
       if (!cam_param_.K.empty() && !cam_param_.D.empty()){
         cv::Mat1d cameraMatrix = (cv::Mat1d(3, 3) << cam_param_.K[0], 0, cam_param_.K[2], 0, cam_param_.K[4], cam_param_.K[5], 0, 0, 1);
@@ -255,42 +259,37 @@ void VisualFeaturesExtractor::update(const ros::Time& time, const ros::Duration&
         cv::undistort(in_images_ptr_->image, rect_image_, cameraMatrix, distCoeffs);
       }
 
-
       if (using_colored_blobs_){
+        // find the centren of the blobs
         findBlobsContours(rect_image_ , contours, founded_features_names);
-
+        std::stringstream stream;
         for (size_t i = 0; i< contours.size(); i++){
-          if (i == 0)
-            std::cout << "real features ";
           cv::Moments momensts = cv::moments( contours[i], false);
           cv::Point2d fc = cv::Point2d( momensts.m10/momensts.m00 , momensts.m01/momensts.m00);
           if (fc.x < cam_param_.width && fc.y < cam_param_.height){
             features_coord.push_back(fc);
-            std::cout << founded_features_names[i]<< " ["<<fc.x<<"  " <<fc.y<<"]   ";
+            stream << founded_features_names[i]<< fixed << setprecision(4) << " ["<<fc.x<<"  " <<fc.y<<"]   ";
           }
           else
-            std::cout << founded_features_names[i]<< " [ out of FOV ]   ";
-          if (i == markers.size()-1)
-            std::cout << "\n";
+             stream << founded_features_names[i]<< " [ out of FOV ]   ";
         }
+        ROS_DEBUG_STREAM ("Real features:" << stream.str() );
       }
       else{
         findArucoMarkers (in_images_ptr_->image , markers, founded_features_names);
+        std::stringstream stream;
         for (size_t i = 0; i< markers.size(); i++){
-          if (i == 0)
-            std::cout << "real features ";
           // find the center of the marker
           cv::Point2d fc = markers[i][0] + markers[i][1] + markers[i][2] + markers[i][3];
           fc = cv::Point2d(fc.x/4.0, fc.y/4.0);
           if (fc.x < cam_param_.width && fc.y < cam_param_.height){
             features_coord.push_back(fc);
-            std::cout << founded_features_names[i]<< " ["<<fc.x<<"  " <<fc.y<<"]   ";
+            stream << founded_features_names[i]<< fixed << setprecision(4) << " ["<<fc.x<<"  " <<fc.y<<"]   ";
           }
           else
-            std::cout << founded_features_names[i]<< " [ out of FOV ]   ";
-          if (i == markers.size()-1)
-            std::cout << "\n";
+            stream << founded_features_names[i]<< " [ out of FOV ]   ";
         }
+        ROS_DEBUG_STREAM ("Real features:" << stream.str() );
       }
     }
     else if(using_sim_features_)
@@ -300,7 +299,6 @@ void VisualFeaturesExtractor::update(const ros::Time& time, const ros::Duration&
     visualFeatureMsg_.is_valid_des_feature = calcFeaturesParameters(des_features_coord_);
     mu02des_= mu02_;
     mu20des_ = mu20_;
-
 
     // Rotation based on P. Corke approach. Calculate the longest line segment betweeen point 0 and other points
     double max_dist =0.0;
@@ -358,21 +356,29 @@ void VisualFeaturesExtractor::update(const ros::Time& time, const ros::Duration&
         }
       }
       ROS_INFO ("The distance Z to the desired feature is %.4lf", Z_des_ );
-      ROS_INFO_STREAM("Data in s_des: "<< std::fixed << std::setprecision(4)<<s_des_.transpose().format(CleanFmt));
-      ROS_DEBUG_STREAM("Data in L_des: "<<"\n" << std::fixed << std::setprecision(4) << Lhat_des_.format(CleanFmt));
+      ROS_INFO_STREAM("s_des: "<< std::fixed << std::setprecision(5)<<s_des_.transpose().format(CleanFmt));
+      ROS_DEBUG_STREAM("L_des: "<<"\n" << std::fixed << std::setprecision(4) << Lhat_des_.format(CleanFmt));
     }
 
+    // Smoothing founded coordinates
+    if (features_coord.size() == num_features_ && work_features_coord_.size()!= num_features_ )
+      work_features_coord_ = features_coord;
+    else if (features_coord.size()== num_features_ && work_features_coord_.size()== num_features_){
+      for (size_t i =0; i<features_coord.size(); i++){
+        work_features_coord_[i].x = filters::exponentialSmoothing(features_coord[i].x, work_features_coord_[i].x, 0.9);
+        work_features_coord_[i].y = filters::exponentialSmoothing(features_coord[i].y, work_features_coord_[i].y, 0.9);
+      }
+    }
+    else if (features_coord.size() != num_features_ )
+      work_features_coord_ = features_coord;
 
     // Calculation for measured feature (real/sim)
-    visualFeatureMsg_.is_valid_msr_feature = calcFeaturesParameters(features_coord);
-
-
-    showAll(rect_image_, contours, markers, features_coord, founded_features_names );
-
+    visualFeatureMsg_.is_valid_msr_feature = calcFeaturesParameters(work_features_coord_);
+    showAll(rect_image_, contours, markers, work_features_coord_, founded_features_names );
     if (visualFeatureMsg_.is_valid_msr_feature){
       // Calculate angle between horizontal axis and
-      msr_angle_ = atan2((features_coord[0].y - features_coord[idx_max_dist_].y),
-          (features_coord[idx_max_dist_].x - features_coord[0].x));
+      msr_angle_ = atan2((work_features_coord_[0].y - work_features_coord_[idx_max_dist_].y),
+          (work_features_coord_[idx_max_dist_].x - work_features_coord_[0].x));
       alpha_ = msr_angle_;
       // Calculation of feature vector and interaction matrix
       if (using_extended_features_ && using_symmetrical_features_){
@@ -416,8 +422,8 @@ void VisualFeaturesExtractor::update(const ros::Time& time, const ros::Duration&
         }
       }
       ROS_INFO ("The distance Z to the measured feature is %.4lf", Z_ );
-      ROS_INFO_STREAM("Data in s_msr: "<<std::fixed << std::setprecision(4)<<s_msr_.transpose().format(CleanFmt));
-      ROS_DEBUG_STREAM("Data in L_msr: "<<"\n" <<std::fixed << std::setprecision(4)<<Lhat_msr_.format(CleanFmt));
+      ROS_INFO_STREAM("s_msr: "<<std::fixed << std::setprecision(5)<<s_msr_.transpose().format(CleanFmt));
+      ROS_DEBUG_STREAM("L_msr: "<<"\n" <<std::fixed << std::setprecision(4)<<Lhat_msr_.format(CleanFmt));
       ROS_INFO("##################################################################");
     }
   }
@@ -701,7 +707,8 @@ void VisualFeaturesExtractor::findArucoMarkers(
   aruco::MarkerDetector marker_detector;
   dst_markers.clear();
   founded_features_names.clear();
-  marker_detector.detect(img, markers, aruco_cam_params_, arucos_size[0], false);
+  marker_detector.detect(img, markers);
+  // marker_detector.detect(img, markers, aruco_cam_params_, arucos_size[0], false);
   for (size_t i = 0; i < arucos_id.size(); i++) {
     for (size_t j = 0; j <  markers.size(); j++){
       if (arucos_id[i] == markers[j].id){
@@ -744,9 +751,9 @@ void VisualFeaturesExtractor::showAll(
 
   mc = des_features_coord_;
   for( size_t i = 0; i< mc.size(); i++ ) {
-    cv::line(drawing_image_, cv::Point2d (des_features_coord_[i].x-10, des_features_coord_[i].y+10), cv::Point2d (des_features_coord_[i].x+10, des_features_coord_[i].y-10), cv::Scalar(255,0,0),2);
-    cv::line(drawing_image_, cv::Point2d (des_features_coord_[i].x+10, des_features_coord_[i].y+10), cv::Point2d (des_features_coord_[i].x-10, des_features_coord_[i].y-10), cv::Scalar(255,0,0),2);
-    cv::putText(drawing_image_, features_names_[i], des_features_coord_[i],  cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255,0,255), 1 );
+    cv::line(drawing_image_, cv::Point2d (mc[i].x-10, mc[i].y+10), cv::Point2d (mc[i].x+10, mc[i].y-10), cv::Scalar(255,0,0),2);
+    cv::line(drawing_image_, cv::Point2d (mc[i].x+10, mc[i].y+10), cv::Point2d (mc[i].x-10, mc[i].y-10), cv::Scalar(255,0,0),2);
+    cv::putText(drawing_image_, features_names_[i], mc[i],  cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255,0,255), 1 );
   }
 
   if (!mask_image_.empty())   cv::imshow( "mask", mask_image_ );
@@ -1416,41 +1423,38 @@ void VisualFeaturesExtractor::calcFeaturesImageCoord(){
 
   // build P with size 3x4
   Eigen::MatrixXd P = K * Rt;
-
-  std::cout << std::fixed << std::setprecision(2);
   Eigen::VectorXd Xv; // Xv is with size  3x1, component Xv(2) = zv
 
   if (using_sim_features_){
+    std::stringstream stream;
     sim_features_coord_.clear();
-    //std::cout << "\nsimulated feature ";
     for (int i = 0; i < allTFwff_.size(); i++){
       Xv = P * Eigen::Vector4d(allTFwff_[i].getOrigin().x(), allTFwff_[i].getOrigin().y(), allTFwff_[i].getOrigin().z(), 1);
-      if (Xv(0)/Xv(2) >= 0 && Xv(0)/Xv(2) <cam_param_.width && Xv(1)/Xv(2) >= 0 && Xv(1)/Xv(2) < cam_param_.height ){
-        sim_features_coord_.push_back(cv::Point2d(Xv(0)/Xv(2), Xv(1)/Xv(2)));
-        //std::cout << features_names_[i]<< " ["<<Xv(0)/Xv(2)<<"  " <<Xv(1)/Xv(2)<<"]   ";
+      cv::Point2d fc = cv::Point2d(Xv(0)/Xv(2), Xv(1)/Xv(2));
+      if (fc.x >= 0 && fc.x <cam_param_.width && fc.y >= 0 && fc.y < cam_param_.height ){
+        sim_features_coord_.push_back(fc);
+        stream << features_names_[i]<< fixed << setprecision(4) << " ["<<fc.x<<"  " <<fc.y<<"]   ";
       }
-      else{
-        //std::cout << features_names_[i]<< " [ out of FOV ]   ";
-      }
+      else
+        stream << features_names_[i]<< " [ out of FOV ]   ";
     }
+    ROS_DEBUG_STREAM ("Sim features:" << stream.str() );
   }
 
 
-  Eigen::Vector2d coord;
+
   des_features_coord_.clear();
-  //std::cout << "\ndesired features: ";
+  std::stringstream stream;
   for (int i = 0; i < allTFcdf_.size(); i++){
-    coord[0] = allTFcdf_[i].getOrigin().getX();
-    coord[1] = allTFcdf_[i].getOrigin().getY();
-    if (coord[0]  >= 0 && coord[0]  <cam_param_.width && coord[1]  >= 0 && coord[1] < cam_param_.height ){
-      des_features_coord_.push_back(cv::Point2d(coord[0], coord[1]));
-      //std::cout << features_names_[i]<< " ["<< coord.transpose()<<"]   ";
+    cv::Point2d fc = cv::Point2d(allTFcdf_[i].getOrigin().getX(), allTFcdf_[i].getOrigin().getY());
+    if (fc.x  >= 0 && fc.x  <cam_param_.width && fc.y  >= 0 && fc.y  < cam_param_.height ){
+      des_features_coord_.push_back(fc);
+      stream << features_names_[i]<< fixed << setprecision(4) << " ["<<fc.x<<"  " <<fc.y<<"]   ";
     }
-    else{
-      // std::cout << features_names_[i]<< " [ out of FOV ]   ";
-    }
+    else
+      stream << features_names_[i]<< " [ out of FOV ]   ";
   }
-  //std::cout <<"\n";
+  ROS_DEBUG_STREAM("Des features:" << stream.str() );
 }
 
 bool VisualFeaturesExtractor::startFeaturesRotation(std_srvs::Empty::Request &req, std_srvs::Empty::Request &res){

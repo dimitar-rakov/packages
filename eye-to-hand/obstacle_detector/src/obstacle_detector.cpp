@@ -13,7 +13,7 @@ bool ObstacleDetector::init(ros::NodeHandle &nh){
 
   nh_ = nh;
   new_move_= false;
-  max_nn_ = 40;
+  max_nn_ = 30;
   points_status_ = -1;
   safety_ton_points_= ros::Time::now();
 
@@ -541,7 +541,7 @@ void ObstacleDetector::simMovingObstacle(const ros::Duration &period){
 void ObstacleDetector:: detectObstaclesAsBox(){
 
   if  (filtered_cloud_ptr_->size() > 0){
-    ros::Time last_time = ros::Time::now();
+    ros::Time tic = ros::Time::now();
 
     double lenght_min_point = 10.0;
     double lenght_max_point =-10.0;
@@ -550,33 +550,35 @@ void ObstacleDetector:: detectObstaclesAsBox(){
     double height_min_point = 10.0;
     double height_max_point =-10.0;
     double   x, y, z;
-    int max_nn =10;
 
-    last_time = ros::Time::now();
+    tic = ros::Time::now();
     float res = 0.05;
-    // Create the filtering object ToDo remove in future
-    pcl::ApproximateVoxelGrid<pcl::PointXYZ> sor1;
-    sor1.setInputCloud (filtered_cloud_ptr_);
-    sor1.setLeafSize (0.01f, 0.01f, 0.01f);
-    sor1.filter (*filtered_cloud_ptr_);
-    ROS_WARN("Processing 3.0 takes %lf Size of out pointcloud %ld" ,(ros::Time::now() -last_time).toSec(), filtered_cloud_ptr_->points.size());
+    /// Create the filtering object \todo {remove in future};
+    pcl::ApproximateVoxelGrid<pcl::PointXYZ> sor;
+    sor.setInputCloud (filtered_cloud_ptr_);
+    sor.setLeafSize (0.01f, 0.01f, 0.01f);
+    sor.filter (*filtered_cloud_ptr_);
+    ROS_DEBUG("Processing 3.0 (VoxelGrid) takes %lf Size pointcloud %ld" ,(ros::Time::now() -tic).toSec(), filtered_cloud_ptr_->points.size());
 
-    last_time = ros::Time::now();
+    tic = ros::Time::now();
+    /// Set point at origin in order voxel grid to be consistent. \todo {Use indeces  by octree_ptr->setInputCloud() in future for performance};
+    filtered_cloud_ptr_->insert(filtered_cloud_ptr_->begin(), 1, pcl::PointXYZ (0.0, 0.0, 0.0));
     std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> > point_grid;
     pcl::octree::OctreePointCloudSearch<pcl::PointXYZ>::Ptr octree_ptr(new pcl::octree::OctreePointCloudSearch<pcl::PointXYZ>(res));
     octree_ptr->setInputCloud (filtered_cloud_ptr_);
     octree_ptr->addPointsFromInputCloud();
     octree_ptr->getOccupiedVoxelCenters (point_grid);
-    ROS_WARN("Processing 3.1 takes %lf Size of out point_grid %ld" ,(ros::Time::now() -last_time).toSec(), point_grid.size());
+    ROS_DEBUG("Processing 3.1 (VoxelCenters) takes %lf Size point_grid %ld" ,(ros::Time::now() -tic).toSec(), point_grid.size());
 
-    last_time = ros::Time::now();
+    tic = ros::Time::now();
     for (size_t i = 0; i < point_grid.size(); i++){
       // parametrize the marker with founded coeficients
       pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
       std::vector< float > k_sqr_distances;
-      // Check for noisy voxels
-      octree_ptr->radiusSearch(point_grid[i], 0.5 * res, inliers->indices, k_sqr_distances, max_nn);
-      if (inliers->indices.size() == max_nn){
+      // Check for noisy voxels Remark radiusSearch() is 15-20 times slower
+      //octree_ptr->radiusSearch(point_grid[i], 0.5 * res, inliers->indices, k_sqr_distances, max_nn_);
+      octree_ptr->voxelSearch(point_grid[i], inliers->indices);
+      if (inliers->indices.size()>= max_nn_){
         x = point_grid[i].x;
         y = point_grid[i].y;
         z = point_grid[i].z;
@@ -588,15 +590,14 @@ void ObstacleDetector:: detectObstaclesAsBox(){
         height_max_point = (height_max_point < z)? z :  height_max_point;
       }
     }
-    ROS_WARN("Processing OctreePointCloud2 takes %lf" ,(ros::Time::now() -last_time).toSec());
-
+    ROS_WARN("Processing 3.3 (inliers() takes %lf" ,(ros::Time::now() -tic).toSec());
 
     // parametrize the marker with founded coeficients
     visualization_msgs::Marker marker;
     marker.header.frame_id = "world";
     marker.header.stamp = ros::Time();
     marker.ns = "obstacles";
-    marker.id = 1234;
+    marker.id = 3002;
     marker.type = visualization_msgs::Marker::CUBE;
     marker.action = visualization_msgs::Marker::ADD;
     marker.scale.x =  static_cast<double>(std::abs(lenght_max_point - lenght_min_point) + res);
@@ -622,43 +623,25 @@ void ObstacleDetector:: detectObstaclesAsBox(){
 
 void ObstacleDetector::detectOctreeVoxels(){
   if  (filtered_cloud_ptr_->size() > 0){
-    ros::Time last_time = ros::Time::now();
+    ros::Time tic = ros::Time::now();
 
-    // Create the filtering object ToDo remove in future
+    /// Create the filtering object \todo {remove in future};
     pcl::ApproximateVoxelGrid<pcl::PointXYZ> sor;
     sor.setInputCloud (filtered_cloud_ptr_);
     sor.setLeafSize (0.01f, 0.01f, 0.01f);
     sor.filter (*filtered_cloud_ptr_);
-    ROS_WARN("Processing 3.0 (VoxelGrid)  takes %lf Size of out pointcloud %ld" ,(ros::Time::now() -last_time).toSec(), filtered_cloud_ptr_->points.size());
+    ROS_DEBUG("Processing 3.0 (VoxelGrid) takes %lf Size pointcloud %ld" ,(ros::Time::now() -tic).toSec(), filtered_cloud_ptr_->points.size());
 
+    /// Set point at origin in order voxel grid to be consistent. \todo {Use indeces  by octree_ptr->setInputCloud() in future for performance};
+    filtered_cloud_ptr_->insert(filtered_cloud_ptr_->begin(), 1, pcl::PointXYZ (0.0, 0.0, 0.0));
     std::vector<pcl::PointXYZ, Eigen::aligned_allocator<pcl::PointXYZ> > point_grid;
     pcl::octree::OctreePointCloudSearch<pcl::PointXYZ>::Ptr octree_ptr(new pcl::octree::OctreePointCloudSearch<pcl::PointXYZ>(obs_octree_resolution_));
     octree_ptr->setInputCloud (filtered_cloud_ptr_);
     octree_ptr->addPointsFromInputCloud();
     octree_ptr->getOccupiedVoxelCenters (point_grid);
-    ROS_WARN("Processing 3.1 (VoxelCenters) takes %lf Size of out point_grid %ld" ,(ros::Time::now() -last_time).toSec(), point_grid.size());
+    ROS_DEBUG("Processing 3.1 (VoxelCenters) takes %lf Size point_grid %ld" ,(ros::Time::now() -tic).toSec(), point_grid.size());
 
-
-//    last_time = ros::Time::now();
-//    visualization_msgs::Marker marker1;
-//    obstacle_objects_test_.markers.clear();
-//    obstacle_objects_test_.markers.push_back(marker1);
-//    marker1.header.frame_id = "world";
-//    marker1.ns = "obstacles_test";
-//    marker1.type = visualization_msgs::Marker::CUBE;
-//    marker1.action = visualization_msgs::Marker::ADD;
-//    marker1.pose.orientation.x = 0.0;
-//    marker1.pose.orientation.y = 0.0;
-//    marker1.pose.orientation.z = 0.0;
-//    marker1.pose.orientation.w = 1.0;
-//    marker1.color.a = 0.75;
-//    marker1.color.r = 0.3;
-//    marker1.color.g = 1.0;
-//    marker1.color.b = 0.0;
-//    marker1.text = std::string("KEEP");
-//    marker1.lifetime = ros::Duration(2.0);
-
-
+//    // For testin iterator only
 //    pcl::octree::OctreePointCloudSearch<pcl::PointXYZ>::Iterator tree_it;
 //    pcl::octree::OctreePointCloudSearch<pcl::PointXYZ>::Iterator tree_it_end = octree_ptr->end();
 //    Eigen::Vector3f min_pt, max_pt;
@@ -666,39 +649,30 @@ void ObstacleDetector::detectOctreeVoxels(){
 //    for (tree_it=octree_ptr->begin(); tree_it!=tree_it_end; ++tree_it){
 //      octree_ptr->getVoxelBounds (tree_it, min_pt, max_pt);
 //    }
-//    ROS_WARN("Processing OctreePointCloud2 takes %lf Size of out point_grid %ld" ,(ros::Time::now() -last_time).toSec(), obstacle_objects_test_.markers.size());
 
-
-
-    last_time = ros::Time::now();
+    tic = ros::Time::now();
     visualization_msgs::Marker marker =  obstacle_objects_.markers[0];
     obstacle_objects_.markers.clear();
     obstacle_objects_.markers.push_back(marker);
-    marker.header.frame_id = "world";
-    marker.ns = "obstacles";
-    marker.type = visualization_msgs::Marker::SPHERE;
-    marker.action = visualization_msgs::Marker::ADD;
-    marker.pose.orientation.x = 0.0;
-    marker.pose.orientation.y = 0.0;
-    marker.pose.orientation.z = 0.0;
-    marker.pose.orientation.w = 1.0;
-    marker.color.a = 0.75;
+    marker.color.a = 0.5;
     marker.color.r = 1.0;
     marker.color.g = 1.0;
     marker.color.b = 0.0;
     marker.text = std::string("KEEP");
-    marker.lifetime = ros::Duration(1.0);
+    marker.lifetime = ros::Duration(0.5);
+
 
     for (size_t i = 0; i < point_grid.size(); i++){
       // parametrize the marker with founded coeficients
       pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
       std::vector< float > k_sqr_distances;
-      // Check for noisy voxels
+      // Check for noisy voxels Remark radiusSearch() is 15-20 times slower
       octree_ptr->radiusSearch(point_grid[i], 0.5 * obs_octree_resolution_, inliers->indices, k_sqr_distances, max_nn_);
-      if (inliers->indices.size()== max_nn_){
+      //octree_ptr->voxelSearch(point_grid[i], inliers->indices);
+      if (inliers->indices.size()>= max_nn_){
         marker.header.stamp = ros::Time();
         marker.id = 3001+i;
-        marker.scale.x = 1.44 * obs_octree_resolution_; //sqrt(2) * octree_resolution_
+        marker.scale.x = 1.44 * obs_octree_resolution_; // sphere_diameter = sqrt(2) * octree_resolution_
         marker.scale.y = 1.44 * obs_octree_resolution_;
         marker.scale.z = 1.44 * obs_octree_resolution_;
         marker.pose.position.x= point_grid[i].x;
@@ -706,9 +680,8 @@ void ObstacleDetector::detectOctreeVoxels(){
         marker.pose.position.z= point_grid[i].z;
         obstacle_objects_.markers.push_back(marker);
       }
-
     }
-    ROS_WARN("Processing 3.3 (inliers() takes %lf Size of out point_grid %ld" ,(ros::Time::now() -last_time).toSec(), obstacle_objects_.markers.size());
+    ROS_WARN("Processing 3.3 (inliers() takes %lf Size of out point_grid %ld" ,(ros::Time::now() -tic).toSec(), obstacle_objects_.markers.size());
   }
 
 }
