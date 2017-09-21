@@ -12,7 +12,6 @@ bool KinectFusion::init(ros::NodeHandle &nh)
 {
   // Ros node handle for the class
   nh_ = nh;
-  aruco_marker_size_ = 0.265;
   aruco_marker_id_= 66; // not used
 
   // Get base_name from parameter server
@@ -62,8 +61,6 @@ bool KinectFusion::init(ros::NodeHandle &nh)
     nh_.param("aruco_marker_size", aruco_marker_size_, 0.265);
     ROS_WARN("Parameter aruco_marker_size was not found. Default value is used: %lf", aruco_marker_size_);
   }
-
-
 
 
 
@@ -179,17 +176,17 @@ void KinectFusion::update(const ros::Time& time, const ros::Duration& period){
     }
   }
 
-  {
-    // Safety timer and mutex synchronizer
-    boost::lock_guard<boost::mutex> guard(sync_cb_mutex_);
-    if ((ros::Time::now()- safety_tons_points_).toSec()< 2.0 && points_status_> -1){ points_status_= 1; }
-    else if ((ros::Time::now()- safety_tons_points_).toSec()> 2.0 && points_status_> -1){ points_status_= 0; }
-    if (points_status_ == 0 ) ROS_WARN("Synchronizing is not longer available" );
-    else if (points_status_ == -1) ROS_WARN_THROTTLE(5, "Waiting for synchronizing");
-    in_clouds_ptr_ = std::vector<sensor_msgs::PointCloud2::Ptr>( cb_clouds_ptr_);
-  }
+//  {
+//    // Safety timer and mutex synchronizer
+//    boost::lock_guard<boost::mutex> guard(sync_cb_mutex_);
+//    if ((ros::Time::now()- safety_tons_points_).toSec()< 2.0 && points_status_> -1){ points_status_= 1; }
+//    else if ((ros::Time::now()- safety_tons_points_).toSec()> 2.0 && points_status_> -1){ points_status_= 0; }
+//    if (points_status_ == 0 ) ROS_WARN("Synchronizing is not longer available" );
+//    else if (points_status_ == -1) ROS_WARN_THROTTLE(5, "Waiting for synchronizing");
+//    in_clouds_ptr_ = std::vector<sensor_msgs::PointCloud2::Ptr>( cb_clouds_ptr_);
+//  }
 
-  /// DEBUG
+  // Detect aruco marker
   for (size_t i=0; i < in_images_ptr_.size(); i++){
     if(!in_images_ptr_[i]->image.empty() && !in_cam_info_ptr_[i]->D.empty()){
       markerDetect(in_images_ptr_[i]->image, in_cam_info_ptr_[i], TFs_a_c_[i], aruco_marker_id_, aruco_marker_size_, std::string("Sensor ") + boost::lexical_cast<std::string>(i) );
@@ -309,11 +306,16 @@ void KinectFusion::markerDetect(const cv:: Mat& srs_image, const sensor_msgs::Ca
 
 void KinectFusion::syncPointcloudsCB( const sensor_msgs::PointCloud2ConstPtr &msg1, const sensor_msgs::PointCloud2ConstPtr &msg2,
                                       const sensor_msgs::PointCloud2ConstPtr &msg3, const sensor_msgs::PointCloud2ConstPtr &msg4,
-                                      const sensor_msgs::PointCloud2ConstPtr &msg5, const sensor_msgs::PointCloud2ConstPtr &msg6){
+                                      const sensor_msgs::PointCloud2ConstPtr &msg5, const sensor_msgs::PointCloud2ConstPtr &msg6)
+{
+
+  ROS_INFO("Time between two callbacks takes %lf" , (ros::Time::now() -safety_tons_points_).toSec());
+  ROS_DEBUG("Time difference 1 %lf" , (ros::Time::now() - msg1->header.stamp).toSec());
   {
     boost::lock_guard<boost::mutex> guard(sync_cb_mutex_);
     cb_clouds_ptr_[0] = boost::const_pointer_cast<sensor_msgs::PointCloud2>(msg1);
     cb_clouds_ptr_[1] = boost::const_pointer_cast<sensor_msgs::PointCloud2>(msg2);
+
     if (point_topics_.size() > 2)
       cb_clouds_ptr_[2] = boost::const_pointer_cast<sensor_msgs::PointCloud2>(msg3);
     if (point_topics_.size() > 3)
@@ -326,18 +328,24 @@ void KinectFusion::syncPointcloudsCB( const sensor_msgs::PointCloud2ConstPtr &ms
     points_status_ = 1;
     safety_tons_points_ = ros::Time::now();
   }
-  // All work done in callback. ToDo research for event based callback
+  // All work done in callback. ToDo research for event based callback (check std::future)
   pointcloudsFusion(cb_clouds_ptr_);
 }
 
 void KinectFusion::pointcloudsFusion(std::vector<sensor_msgs::PointCloud2::Ptr>  in_clouds_ptr){
 
+  ros::Time tic_all = ros::Time::now();
   ros::Time tic = ros::Time::now();
   pcl_ros::transformPointCloud ("world", *in_clouds_ptr[0], *transf_clouds_ptr_[0], lr_);
+  ROS_DEBUG("Transform 1 takes %lf" , (ros::Time::now() -tic).toSec());
+  tic = ros::Time::now();
   pcl_ros::transformPointCloud ("world", *in_clouds_ptr[1], *transf_clouds_ptr_[1], lr_);
+  ROS_DEBUG("Transform 2 takes %lf" , (ros::Time::now() -tic).toSec());
+  tic = ros::Time::now();
   pcl::concatenatePointCloud (*transf_clouds_ptr_[0], *transf_clouds_ptr_[1], *fused_cloud_ptr_);
+  ROS_DEBUG("Concatenate takes %lf" , (ros::Time::now() -tic).toSec());
 
-  /// ToDo Test all cases for more than 2 kinects
+  /// \todo { Test all cases for more than 2 kinects}
   if (point_topics_.size() > 2){
     pcl_ros::transformPointCloud ("world", *in_clouds_ptr[2], *transf_clouds_ptr_[2], lr_);
     pcl::concatenatePointCloud (*transf_clouds_ptr_[2], *fused_cloud_ptr_, *fused_cloud_ptr_);
@@ -354,9 +362,12 @@ void KinectFusion::pointcloudsFusion(std::vector<sensor_msgs::PointCloud2::Ptr> 
     pcl_ros::transformPointCloud ("world", *in_clouds_ptr[5], *transf_clouds_ptr_[5], lr_);
     pcl::concatenatePointCloud (*transf_clouds_ptr_[5], *fused_cloud_ptr_, *fused_cloud_ptr_);
   }
-  ROS_INFO("clouds Fusion takes %lf Pointcloud height %d and width %d" , (ros::Time::now() -tic).toSec(), fused_cloud_ptr_->height, fused_cloud_ptr_->width);
+
+  fused_cloud_ptr_->header.stamp = ros::Time::now();
+  transf_clouds_ptr_[0]->header.stamp = ros::Time::now();
+  transf_clouds_ptr_[1]->header.stamp = ros::Time::now();
   pub_points.publish(*fused_cloud_ptr_);
   pub_points1.publish(*transf_clouds_ptr_[0]);
   pub_points2.publish(*transf_clouds_ptr_[1]);
-
+  ROS_INFO("clouds Fusion takes %lf Pointcloud height %d and width %d" , (ros::Time::now() -tic_all).toSec(), fused_cloud_ptr_->height, fused_cloud_ptr_->width);
 }

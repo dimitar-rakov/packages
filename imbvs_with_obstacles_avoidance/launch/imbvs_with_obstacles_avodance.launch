@@ -15,7 +15,7 @@
     <arg name="enb_obstacle_avoidance"                      default="true"/>
     <arg name="test_only_obstacle_avoidance"                default="false"/>
     <arg name="using_multiple_colision_points"              default="true"/>
-    <arg name="v_max"                                       default="0.2"/>
+    <arg name="v_max"                                       default="0.10"/>
     <arg name="alpha"                                       default="6.0"/>
     <arg name="ro_1"                                        default="1.0"/>
     <arg name="ro_2"                                        default="0.2"/>
@@ -29,7 +29,7 @@
     <arg name="gama_1_3a"                                   default="[2.0, 2.0, 50.0, 50.0, 70.0, 1.5]"/>
     <arg name="gama_a"                                      default="[2.5, 2.0, 10.0, 20.0, 20.0, 1.5]"/> <!-- gama_1_2a real -->
     <arg name="gama_s"                                      default="[2.0, 2.0, 15.0, 20.0, 20.0, 1.0]"/> <!-- gama_1_2s real -->
-    <arg name="gama"                                      default="[4.5, 4.5, 30.0, 20.0, 20.0, 1.0]"/> <!-- gama_1_2s real -->
+    <arg name="gama"                                        default="[4.5, 4.5, 40.0, 20.0, 20.0, 1.0]"/> <!-- gama_1_2s real -->
 
 
     <node name="$(arg base_name)" pkg="imbvs_with_obstacles_avoidance" type="imbvs_with_obstacles_avoidance_node" respawn="false" output="screen">
@@ -56,7 +56,7 @@
         <rosparam param="gama"                              subst_value="True">$(arg gama)</rosparam>
     </node>
 
-    <node pkg="tf2_ros" type="static_transform_publisher" name="cam_to_end_eff" args="0.000 0.000 0.095 0.000 0.000 0.707106781 0.707106781 lwr_a6_link eye_in_hand " />
+    <node pkg="tf2_ros" type="static_transform_publisher" name="cam_to_end_eff" args="0.000 0.000 0.11 0.000 0.000 0.707106781 0.707106781 lwr_a6_link eye_in_hand " />
 
 </launch>
 		

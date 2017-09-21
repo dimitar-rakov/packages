@@ -17,7 +17,7 @@ int main(int argc, char **argv)
     }
 
     ros::Time last_time = ros::Time::now(), init_time = ros::Time::now(), upd_time = ros::Time::now();
-    ros::Duration msr_period(0.0),des_period(0.40), work_period(0.40);
+    ros::Duration msr_period(0.0),des_period(0.08), work_period(0.08);
 
     while(ros::ok())
     {
@@ -31,6 +31,7 @@ int main(int argc, char **argv)
             (des_period - msr_period).sleep();
         else
             ROS_WARN ("Desired period exceed. Desired period is %lf, last period is %lf", des_period.toSec() ,msr_period.toSec());
+        od.publish();
         last_time = ros::Time::now();
         work_period = last_time - init_time ;
     }

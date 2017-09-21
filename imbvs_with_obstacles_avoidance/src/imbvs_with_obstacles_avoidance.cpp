@@ -753,6 +753,13 @@ void ImbvsWithObstaclesAvoidance::recordAllData(){
                          std::fixed << std::setprecision(4)<<(svd2.singularValues()).transpose().format(CleanFmt));
     for (long i = 0; i < (svd2.singularValues()).size(); i++)
       all_data_msg.data.push_back((svd2.singularValues())(i));
+
+    // Calculate svd of the  Lhat_
+    JacobiSVD<MatrixXd> svd3((Lhat_), ComputeFullU | ComputeFullV);
+    ROS_WARN_STREAM_COND(svd3.singularValues()(5) < 0.001,"Lhat_ sigmas: "<<
+                         std::fixed << std::setprecision(4)<<(svd3.singularValues()).transpose().format(CleanFmt));
+
+
   }
 }
 
@@ -938,7 +945,7 @@ void ImbvsWithObstaclesAvoidance::obstaclesProcesing(double &dst_min_dist, doubl
 
   // Exponential smoothing filter for joint_rep_field_. Values closer to 0 weight the last smoothed value more heavily
   for (long i = 0; i< joint_rep_field_.size(); i++)
-    joint_rep_field_(i) = filters::exponentialSmoothing(joint_rep_field_(i), joint_rep_field_prev_(i), 0.3);
+    joint_rep_field_(i) = filters::exponentialSmoothing(joint_rep_field_(i), joint_rep_field_prev_(i), 0.6);
   dst_min_dist = min_dist;
   dst_max_ni1 = max_ni1;
 

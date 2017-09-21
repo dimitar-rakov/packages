@@ -2,7 +2,6 @@
 #include <pcl/filters/extract_indices.h>
 #include <pcl/filters/passthrough.h>
 #include <pcl/filters/approximate_voxel_grid.h>
-#include <pcl/filters/voxel_grid.h>
 
 
 
@@ -13,7 +12,6 @@ bool ObstacleDetector::init(ros::NodeHandle &nh){
 
   nh_ = nh;
   new_move_= false;
-  max_nn_ = 30;
   points_status_ = -1;
   safety_ton_points_= ros::Time::now();
 
@@ -43,6 +41,11 @@ bool ObstacleDetector::init(ros::NodeHandle &nh){
   if (!nh_.getParam("octree_resolution", obs_octree_resolution_)){
     nh_.param("octree_resolution", obs_octree_resolution_, 0.2);
     ROS_WARN("Parameter octree_resolution was not found. Default value is used: %lf", obs_octree_resolution_);
+  }
+
+  if (!nh_.getParam("min_voxel_points",min_voxel_points_)){
+    nh_.param("min_voxel_points", min_voxel_points_, 30);
+    ROS_WARN("Parameter min_voxel_points was not found. Default value is used: %d", min_voxel_points_);
   }
 
 
@@ -122,7 +125,6 @@ bool ObstacleDetector::init(ros::NodeHandle &nh){
   srv_set_obstacle_trajectory_ = nh_.advertiseService(nh_.getNamespace()+"/set_obstacle_trajectory", &ObstacleDetector::setObstacleTrajectory, this);
   pub_output_cloud_ = nh_.advertise<sensor_msgs::PointCloud2> (nh_.getNamespace()+"/output_cloud", 1);
   pub_markers_obstacle_objects_ = nh_.advertise<visualization_msgs::MarkerArray>(nh_.getNamespace()+"/obstacle_objects", 1 );
-  pub_markers_obstacle_objects_test_ = nh_.advertise<visualization_msgs::MarkerArray>(nh_.getNamespace()+"/obstacle_objects_test", 1 );
 
   TFs_.resize(tf_names_.size()-1);
   TFs_fixed_.resize(tf_names_.size());
@@ -170,7 +172,6 @@ bool ObstacleDetector::getTFs(){
       lr_.lookupTransform(fixed_frame_, tf_names_[i], ros::Time(0), tf);
       TFs_fixed_[i].setOrigin(tf.getOrigin());
       TFs_fixed_[i].setRotation(tf.getRotation());
-      //ROS_INFO("TFs_fixed_[%ld]: x: %lf, y: %lf, z: %lf",i, TFs_fixed_[i].getOrigin().getX(), TFs_fixed_[i].getOrigin().getY(), TFs_fixed_[i].getOrigin().getZ());
     }
     catch (tf::TransformException ex){
       ROS_ERROR("%s",ex.what());
@@ -192,18 +193,20 @@ void ObstacleDetector::update(const ros::Time& time, const ros::Duration& period
     else if ((ros::Time::now()- safety_ton_points_).toSec()> 2.0 && points_status_> -1){ points_status_= 0; }
     if (points_status_ == 0) ROS_WARN("Points' topic is not longer available");
     else if (points_status_ == -1) ROS_WARN_THROTTLE(5, "Waiting for points' topic");
-    ros::Time last_time = ros::Time::now();
+    ros::Time tic = ros::Time::now();
     if (USE_PCL_CB)
       in_cloud_ptr_ =  cb_cloud_ptr_;
-    else if (!USE_PCL_CB && cb_ros_cloud_ptr_->data.size() > 0)
+    else if (!USE_PCL_CB && cb_ros_cloud_ptr_->data.size() > 0){
       pcl::fromROSMsg(*cb_ros_cloud_ptr_, *in_cloud_ptr_);
+      ROS_WARN("Processing 0 takes %lf Size of out pointcloud %ld" ,(ros::Time::now() -tic).toSec(), in_cloud_ptr_->points.size());
+    }
 
   }
 
-  ros::Time last_time = ros::Time::now();
+  ros::Time tic = ros::Time::now();
   if(getTFs()){
-    //buildRobotBodyFromSpheres();
 
+    //buildRobotBodyFromSpheres();
 
     // Build a robot filter fixed objects (fixed coordinates)
     filter_robot_objects_fixed_.markers.clear();
@@ -233,10 +236,10 @@ void ObstacleDetector::update(const ros::Time& time, const ros::Duration& period
     }
 
     // Create the filtering object OctreePointCloud
-    last_time = ros::Time::now();
+    tic = ros::Time::now();
 
     // Proceeds enviroment filter objects
-    last_time = ros::Time::now();
+    tic = ros::Time::now();
     for (size_t i=0 ; i < filter_env_objects_.markers.size(); i++){
       if (filter_env_objects_.markers[i].type == visualization_msgs::Marker::CUBE){
         if (i==0 &&  in_cloud_ptr_->points.size()>0)
@@ -251,11 +254,11 @@ void ObstacleDetector::update(const ros::Time& time, const ros::Duration& period
           filterSphereOut(filter_env_objects_.markers[i], filtered_cloud_ptr_, filtered_cloud_ptr_);
       }
     }
-    ROS_WARN("Processing 1 takes %lf Size of out pointcloud %ld" ,(ros::Time::now() -last_time).toSec(), filtered_cloud_ptr_->points.size());
+    ROS_WARN("Processing 1 takes %lf Size of out pointcloud %ld" ,(ros::Time::now() -tic).toSec(), filtered_cloud_ptr_->points.size());
 
 
     // Proceeds robot filter objects
-    last_time = ros::Time::now();
+    tic = ros::Time::now();
     for (size_t i = 0 ; i < filter_robot_objects_fixed_.markers.size(); i++){
 
       if (filter_robot_objects_fixed_.markers[i].type == visualization_msgs::Marker::CUBE){
@@ -272,7 +275,7 @@ void ObstacleDetector::update(const ros::Time& time, const ros::Duration& period
           filterSphereOut(filter_robot_objects_fixed_.markers[i], filtered_cloud_ptr_,filtered_cloud_ptr_);
       }
     }
-    ROS_WARN("Processing 2 takes %lf Size of out pointcloud %ld" ,(ros::Time::now() -last_time).toSec(), filtered_cloud_ptr_->points.size());
+    ROS_WARN("Processing 2 takes %lf Size of out pointcloud %ld" ,(ros::Time::now() -tic).toSec(), filtered_cloud_ptr_->points.size());
 
 
     // Proceeds robot obstacle objects
@@ -284,7 +287,7 @@ void ObstacleDetector::update(const ros::Time& time, const ros::Duration& period
 
     //prepare for publishing
     pcl::toROSMsg(*filtered_cloud_ptr_, *filtered_ros_cloud_ptr_);
-    publish(); // here as soon as all calculation are done, another option could be at fixed frame rate in a node;
+    //publish(); // here as soon as all calculation are done, another option could be at fixed frame rate in a node;
   }
 
 }
@@ -297,32 +300,33 @@ void ObstacleDetector::publish(){
     pub_markers_filter_robot_objects_.publish(filter_robot_objects_);
   if (!filter_robot_objects_fixed_.markers.empty())
     pub_markers_filter_robot_objects_fixed_.publish(filter_robot_objects_fixed_);
-  if (!obstacle_objects_.markers.empty())
+  if (!obstacle_objects_.markers.empty()){
     pub_markers_obstacle_objects_.publish(obstacle_objects_);
-  if (!obstacle_objects_test_.markers.empty())
-  pub_markers_obstacle_objects_test_.publish(obstacle_objects_test_);
-  if (!filtered_ros_cloud_ptr_->data.empty())
+  }
+  if (!filtered_ros_cloud_ptr_->data.empty()){
+    filtered_ros_cloud_ptr_->header.stamp = ros::Time::now();
     pub_output_cloud_.publish(*filtered_ros_cloud_ptr_);
-
+  }
 }
 
 
 void ObstacleDetector::pclPointcloudCB (const pcl::PointCloud<pcl::PointXYZ>::ConstPtr &cloud_msg, pcl::PointCloud<pcl::PointXYZ>::Ptr *dst_cloud_ptr, ros::Time *safety_ton, int *points_status ){
-  ros::Time last_time = ros::Time::now();
+  ros::Time tic = ros::Time::now();
   boost::lock_guard<boost::mutex> guard(points_cb_mutex_);
   *dst_cloud_ptr = boost::const_pointer_cast<pcl::PointCloud<pcl::PointXYZ> >(cloud_msg);
   *safety_ton = ros::Time::now();
   *points_status = 1;
-  ROS_DEBUG("pclPointsCB takes %lf Size of out pointcloud %ld" , (ros::Time::now() -last_time).toSec(), (*dst_cloud_ptr)->points.size());
+  ROS_DEBUG("pclPointsCB takes %lf Size of out pointcloud %ld" , (ros::Time::now() -tic).toSec(), (*dst_cloud_ptr)->points.size());
 }
 
 void ObstacleDetector::rosPointcloudCB(const sensor_msgs::PointCloud2ConstPtr& msg, sensor_msgs::PointCloud2Ptr *dst_cloud_ptr, ros::Time *safety_ton, int *points_status){
-  ros::Time last_time = ros::Time::now();
+  ROS_DEBUG("Time difference 1 %lf" , (ros::Time::now() - msg->header.stamp).toSec());
+  ros::Time tic = ros::Time::now();
   boost::lock_guard<boost::mutex> guard(points_cb_mutex_);
   *dst_cloud_ptr = boost::const_pointer_cast<sensor_msgs::PointCloud2>(msg);
   *safety_ton = ros::Time::now();
   *points_status = 1;
-  ROS_DEBUG("rosPointsCB takes %lf Pointcloud height %d and width %d" , (ros::Time::now() -last_time).toSec(), (*dst_cloud_ptr)->height, (*dst_cloud_ptr)->width);
+  ROS_DEBUG("rosPointsCB takes %lf Pointcloud height %d and width %d" , (ros::Time::now() -tic).toSec(), (*dst_cloud_ptr)->height, (*dst_cloud_ptr)->width);
 }
 
 void ObstacleDetector::buildRobotBodyFromSpheres(){
@@ -578,7 +582,7 @@ void ObstacleDetector:: detectObstaclesAsBox(){
       // Check for noisy voxels Remark radiusSearch() is 15-20 times slower
       //octree_ptr->radiusSearch(point_grid[i], 0.5 * res, inliers->indices, k_sqr_distances, max_nn_);
       octree_ptr->voxelSearch(point_grid[i], inliers->indices);
-      if (inliers->indices.size()>= max_nn_){
+      if (inliers->indices.size()>= min_voxel_points_){
         x = point_grid[i].x;
         y = point_grid[i].y;
         z = point_grid[i].z;
@@ -667,9 +671,9 @@ void ObstacleDetector::detectOctreeVoxels(){
       pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
       std::vector< float > k_sqr_distances;
       // Check for noisy voxels Remark radiusSearch() is 15-20 times slower
-      octree_ptr->radiusSearch(point_grid[i], 0.5 * obs_octree_resolution_, inliers->indices, k_sqr_distances, max_nn_);
+      octree_ptr->radiusSearch(point_grid[i], 0.5 * obs_octree_resolution_, inliers->indices, k_sqr_distances, min_voxel_points_);
       //octree_ptr->voxelSearch(point_grid[i], inliers->indices);
-      if (inliers->indices.size()>= max_nn_){
+      if (inliers->indices.size()>= min_voxel_points_){
         marker.header.stamp = ros::Time();
         marker.id = 3001+i;
         marker.scale.x = 1.44 * obs_octree_resolution_; // sphere_diameter = sqrt(2) * octree_resolution_

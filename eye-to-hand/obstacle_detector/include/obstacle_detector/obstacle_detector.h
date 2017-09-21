@@ -84,9 +84,6 @@ private:
     pcl::PointCloud<pcl::PointXYZ>::Ptr cb_cloud_ptr_;
 
 
-    ros::Publisher pub_markers_obstacle_objects_test_;
-    visualization_msgs::MarkerArray obstacle_objects_test_;
-
     // Parameters server variable
     bool sim_obstacles_enb_;
     std::string points_topic_;
@@ -94,7 +91,7 @@ private:
     std::string base_name_;
     std::vector<std::string> tf_names_;
     double obs_octree_resolution_;
-    unsigned int max_nn_;
+    int min_voxel_points_;
 
 
     // flags for topics data. status -1 - not not received, status 0 - delayed,

@@ -7,7 +7,7 @@ filter_robot_obj:
     text: REMOVE
     frame_id: 'lwr_base_link'
     position: {x: 0.0, y: 0.0, z: 0.0 }
-    rgba: {r: 0.0, g: 0.0, b: 1.0, a: 0.3 }
+    rgba: {r: 0.0, g: 0.0, b: 1.0, a: 0.1 }
     scale: {x: 0.40, y: 0.40, z: 0.40 }
 
   filter_robot_obj002:
@@ -16,7 +16,7 @@ filter_robot_obj:
     text: REMOVE
     frame_id: 'lwr_a1_link'
     position: {x: 0.0, y: 0.0, z: 0.0 }
-    rgba: {r: 0.0, g: 0.0, b: 1.0, a: 0.3 }
+    rgba: {r: 0.0, g: 0.0, b: 1.0, a: 0.1 }
     scale: {x: 0.35, y: 0.35, z: 0.35 }
 
   filter_robot_obj003:
@@ -25,7 +25,7 @@ filter_robot_obj:
     text: REMOVE
     frame_id: 'lwr_a1_link'
     position: {x: 0.0, y: 0.0, z: 0.14 }
-    rgba: {r: 0.0, g: 0.0, b: 1.0, a: 0.3 }
+    rgba: {r: 0.0, g: 0.0, b: 1.0, a: 0.1 }
     scale: {x: 0.35, y: 0.35, z: 0.35 }
 
   filter_robot_obj004:
@@ -34,7 +34,7 @@ filter_robot_obj:
     text: REMOVE
     frame_id: 'lwr_a2_link'
     position: {x: 0.0, y: 0.0, z: 0.0 }
-    rgba: {r: 0.0, g: 0.0, b: 1.0, a: 0.3 }
+    rgba: {r: 0.0, g: 0.0, b: 1.0, a: 0.1 }
     scale: {x: 0.35, y: 0.35, z: 0.35 }
 
   filter_robot_obj005:
@@ -43,7 +43,7 @@ filter_robot_obj:
     text: REMOVE
     frame_id: 'lwr_a2_link'
     position: {x: 0.0, y: 0.0, z: 0.14 }
-    rgba: {r: 0.0, g: 0.0, b: 1.0, a: 0.3 }
+    rgba: {r: 0.0, g: 0.0, b: 1.0, a: 0.1 }
     scale: {x: 0.35, y: 0.35, z: 0.35 }
 
   filter_robot_obj006:
@@ -52,7 +52,7 @@ filter_robot_obj:
     text: REMOVE
     frame_id: 'lwr_e1_link'
     position: {x: 0.0, y: 0.0, z: 0.0 }
-    rgba: {r: 0.0, g: 0.0, b: 1.0, a: 0.3 }
+    rgba: {r: 0.0, g: 0.0, b: 1.0, a: 0.1 }
     scale: {x: 0.35, y: 0.35, z: 0.35 }
 
   filter_robot_obj007:
@@ -61,7 +61,7 @@ filter_robot_obj:
     text: REMOVE
     frame_id: 'lwr_e1_link'
     position: {x: 0.0, y: 0.0, z: 0.14 }
-    rgba: {r: 0.0, g: 0.0, b: 1.0, a: 0.3 }
+    rgba: {r: 0.0, g: 0.0, b: 1.0, a: 0.1 }
     scale: {x: 0.35, y: 0.35, z: 0.35 }
 
   filter_robot_obj008:
@@ -70,7 +70,7 @@ filter_robot_obj:
     text: REMOVE
     frame_id: 'lwr_a3_link'
     position: {x: 0.0, y: 0.0, z: 0.0 }
-    rgba: {r: 0.0, g: 0.0, b: 1.0, a: 0.3 }
+    rgba: {r: 0.0, g: 0.0, b: 1.0, a: 0.1 }
     scale: {x: 0.40, y: 0.40, z: 0.40 }
 
   filter_robot_obj009:
@@ -79,7 +79,7 @@ filter_robot_obj:
     text: REMOVE
     frame_id: 'lwr_a3_link'
     position: {x: 0.0, y: 0.0, z: 0.14 }
-    rgba: {r: 0.0, g: 0.0, b: 1.0, a: 0.3 }
+    rgba: {r: 0.0, g: 0.0, b: 1.0, a: 0.1 }
     scale: {x: 0.35, y: 0.35, z: 0.35 }
 
   filter_robot_obj010:
@@ -88,7 +88,7 @@ filter_robot_obj:
     text: REMOVE
     frame_id: 'lwr_a4_link'
     position: {x: 0.0, y: 0.0, z: 0.0 }
-    rgba: {r: 0.0, g: 0.0, b: 1.0, a: 0.3 }
+    rgba: {r: 0.0, g: 0.0, b: 1.0, a: 0.1 }
     scale: {x: 0.35, y: 0.35, z: 0.35 }
 
   filter_robot_obj011:
@@ -97,7 +97,7 @@ filter_robot_obj:
     text: REMOVE
     frame_id: 'lwr_a4_link'
     position: {x: 0.0, y: 0.0, z: 0.14 }
-    rgba: {r: 0.0, g: 0.0, b: 1.0, a: 0.3 }
+    rgba: {r: 0.0, g: 0.0, b: 1.0, a: 0.1 }
     scale: {x: 0.40, y: 0.40, z: 0.40 }
 
   filter_robot_obj012:
@@ -106,7 +106,7 @@ filter_robot_obj:
     text: REMOVE
     frame_id: 'lwr_a5_link'
     position: {x: 0.0, y: 0.0, z: 0.0 }
-    rgba: {r: 0.0, g: 0.0, b: 1.0, a: 0.3 }
+    rgba: {r: 0.0, g: 0.0, b: 1.0, a: 0.1 }
     scale: {x: 0.35, y: 0.35, z: 0.35 }
 
   filter_robot_obj013:
@@ -115,7 +115,7 @@ filter_robot_obj:
     text: REMOVE
     frame_id: 'lwr_a6_link'
     position: {x: 0.0, y: 0.0, z: 0.0 }
-    rgba: {r: 0.0, g: 0.0, b: 1.0, a: 0.3 }
+    rgba: {r: 0.0, g: 0.0, b: 1.0, a: 0.1 }
     scale: {x: 0.32, y: 0.32, z: 0.32 }
 
 
@@ -126,7 +126,7 @@ filter_env_obj:
     text: 'KEEP'
     frame_id: 'world'
     position: {x: 0.0, y: -0.1, z: 1.4 }
-    rgba: {r: 0.0, g: 1.0, b: 0.0, a: 0.1 }
+    rgba: {r: 0.0, g: 1.0, b: 0.0, a: 0.05 }
     scale: {x: 2.8, y: 2.6, z: 2.4}
 
   filter_env_obj002:

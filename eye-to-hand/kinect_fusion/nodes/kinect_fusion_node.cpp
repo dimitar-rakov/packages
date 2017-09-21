@@ -24,7 +24,7 @@ int main(int argc, char **argv)
     ros::Time last_time = ros::Time::now(), init_time = ros::Time::now(), upd_time = ros::Time::now();
 
     // Remark currently all fusion is done in callback, therefore des_period does not matter
-    ros::Duration msr_period(0.0),des_period(0.050), work_period(0.050);
+    ros::Duration msr_period(0.010),des_period(0.010), work_period(0.010);
 
     ros::AsyncSpinner spinner(4);
     spinner.start();
