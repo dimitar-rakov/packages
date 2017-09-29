@@ -1,0 +1,19 @@
+<package format="2">
+  <name>nodelets_example</name>
+  <version>0.1.0</version>
+  <description>The nodelets_example package</description>
+  <maintainer email="dimitar.rakov@tum.de">Dimitar Rakov</maintainer>
+  <license>TODO</license>
+  <author>Dimitar Rakov</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>roscpp</depend>
+  <depend>nodelet</depend>
+  <depend>pluginlib</depend>
+  <depend>visualization_msgs</depend>
+
+  <export>
+    <nodelet plugin="${prefix}/nodelet_plugins.xml"/>
+  </export>
+
+</package>

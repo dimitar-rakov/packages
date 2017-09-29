@@ -1,0 +1,50 @@
+<launch>   
+  <arg name="using_nodelets"            default="true"/>
+  <arg name="base_name"                 default="nodelets_example"/>
+  <arg name="enb_publishing"            default="true"/>
+  <arg name="pub_markers_topic"         default="/pub_markers_topic"/>
+  <arg name="sub_markers_topic"         default="/sub_markers_topic"/>
+  <arg name="des_period_sec"            default="0.5"/>
+
+
+  <group unless="$(arg using_nodelets)">
+    <node name="test_node_pub"     pkg="nodelets_example"  type="nodelets_example_node" output="screen">
+      <param name="base_name"             type="str"      value="node_example_pub"/>
+      <param name="enb_publishing"        type="bool"     value="$(arg enb_publishing)"/>
+      <param name="pub_markers_topic"     type="str"      value="/pub_markers_topic"/>
+      <param name="sub_markers_topic"     type="str"      value="/markers_topic_not_in_use"/>
+      <param name="des_period_sec"        type="double"   value="$(arg des_period_sec)"/>
+    </node>
+
+    <node name="test_node_sub"     pkg="nodelets_example"  type="nodelets_example_node" output="screen">
+      <param name="base_name"             type="str"      value="node_example_sub"/>
+      <param name="enb_publishing"        type="bool"     value="false"/>
+      <param name="pub_markers_topic"     type="str"      value="/markers_topic_not_in_use"/>
+      <param name="sub_markers_topic"     type="str"      value="/pub_markers_topic"/>
+      <param name="des_period_sec"        type="double"   value="$(arg des_period_sec)"/>
+    </node>
+  </group>
+
+
+  <group if="$(arg using_nodelets)">
+    <node pkg="nodelet" type="nodelet" name="standalone_nodelet"  args="manager" output="screen"/>
+
+    <node pkg="nodelet" type="nodelet" name="test_nodelet_pub"
+          args="load nodelets_example/NodeletsExampleNodelet standalone_nodelet" output="screen">
+      <param name="base_name"             type="str"      value="nodelets_example_pub"/>
+      <param name="enb_publishing"        type="bool"     value="$(arg enb_publishing)"/>
+      <param name="pub_markers_topic"     type="str"      value="/pub_markers_topic"/>
+      <param name="sub_markers_topic"     type="str"      value="/markers_topic_not_in_use"/>
+      <param name="des_period_sec"        type="double"   value="$(arg des_period_sec)"/>
+    </node>
+
+    <node pkg="nodelet" type="nodelet" name="test_nodelet_sub"
+          args="load nodelets_example/NodeletsExampleNodelet standalone_nodelet" output="screen">
+      <param name="base_name"             type="str"      value="nodelets_example_sub"/>
+      <param name="enb_publishing"        type="bool"     value="false"/>
+      <param name="pub_markers_topic"     type="str"      value="/markers_topic_not_in_use"/>
+      <param name="sub_markers_topic"     type="str"      value="/pub_markers_topic"/>
+      <param name="des_period_sec"        type="double"   value="$(arg des_period_sec)"/>
+    </node>
+  </group>
+</launch>

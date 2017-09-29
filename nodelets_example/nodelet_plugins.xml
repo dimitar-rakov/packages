@@ -1,0 +1,8 @@
+<library path="lib/libnodelets_example">
+    
+  <class name="nodelets_example/NodeletsExampleNodelet" type="examples::NodeletsExampleNodelet" base_class_type="nodelet::Nodelet">
+    <description>
+      nodelets_example nodelet.
+    </description>
+  </class>
+</library>
