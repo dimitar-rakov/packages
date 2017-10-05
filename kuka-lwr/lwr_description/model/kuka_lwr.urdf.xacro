@@ -99,7 +99,7 @@
             <joint name="${name}_a2_joint" type="revolute">
                     <origin xyz="0 0 0.2005" rpy="0 0 0"/>
                     <axis xyz="0 -1 0"/>
-                    <limit lower="${-30 * M_PI / 180}" upper="${210 * M_PI / 180}" effort="176" velocity="${velocity_scale * 110 * M_PI / 180}" />
+                    <limit lower="${-170 * M_PI / 180}" upper="${170 * M_PI / 180}" effort="176" velocity="${velocity_scale * 110 * M_PI / 180}" />
                     <dynamics friction="10.0" damping="1.0"/>
                     <parent link="${name}_a1_link"/>
                     <child link="${name}_a2_link"/>

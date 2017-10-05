@@ -172,7 +172,7 @@ bool ImbvsWithObstaclesAvoidance::init(ros::NodeHandle &n)
 
   // Get lwr_states_topic  from parameter server
   if (!nh_.getParam("joint_states_topic", joint_states_topic_)){
-    nh_.param("joint_states_topic", features_data_topic_, std::string ("/joint_states"));
+    nh_.param("joint_states_topic", joint_states_topic_, std::string ("/joint_states"));
     ROS_WARN("Parameter joint_states_topic was not found. Default topic's name is used: %s ", joint_states_topic_.c_str());
   }
 
@@ -715,7 +715,7 @@ void ImbvsWithObstaclesAvoidance::recordAllData(){
   all_data_msg.data.push_back(Fwc.p.x());
   all_data_msg.data.push_back(Fwc.p.y());
   all_data_msg.data.push_back(Fwc.p.z());
-  Fwc.M.RPY(roll, pitch, yaw);
+  Fwc.M.GetRPY(roll, pitch, yaw);
   all_data_msg.data.push_back(roll);
   all_data_msg.data.push_back(pitch);
   all_data_msg.data.push_back(yaw);
@@ -839,11 +839,20 @@ void ImbvsWithObstaclesAvoidance::calcMinDistances(){
       double ro2 = 0.5 * std::max(std::max(ro_s.x, ro_s.y),  ro_s.z);
       double dist_centers = std::abs((Fbo_[i].p - Fbs_[j].p).Norm());
 
-      // point on body sphere where the line between two objects centers cross the body sphere surface
-      KDL::Vector Pb_ss =  Fbs_[j].p + rs2/dist_centers * (Fbo_[i].p - Fbs_[j].p );
+      KDL::Vector Pb_ss, Pb_os;
+      //Check if objects does not overlapp
+      if (dist_centers > ro2 +rs2){
+        // point on body sphere where the line between two objects centers cross the body sphere surface
+        Pb_ss =  Fbs_[j].p + rs2/dist_centers * (Fbo_[i].p - Fbs_[j].p );
 
-      // point on obstacle sphere where the line between two objects centers cross the obstacle sphere surface
-      KDL::Vector Pb_os =  Fbo_[i].p + ro2/dist_centers * (Fbs_[j].p - Fbo_[i].p);
+        // point on obstacle sphere where the line between two objects centers cross the obstacle sphere surface
+        Pb_os =  Fbo_[i].p + ro2/dist_centers * (Fbs_[j].p - Fbo_[i].p);
+      }
+      // Measurments are not correct, just take centers of objects
+      else{
+         Pb_ss =  Fbs_[j].p;
+         Pb_os =  Fbo_[i].p;
+      }
       KDL::Vector dist_vec_surfaces = Pb_os - Pb_ss;
       double dist_surfaces = std::abs((dist_vec_surfaces).Norm());
 

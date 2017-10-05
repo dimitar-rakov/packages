@@ -29,7 +29,7 @@
     <arg name="gama_1_3a"                                   default="[2.0, 2.0, 50.0, 50.0, 70.0, 1.5]"/>
     <arg name="gama_a"                                      default="[2.5, 2.0, 10.0, 20.0, 20.0, 1.5]"/> <!-- gama_1_2a real -->
     <arg name="gama_s"                                      default="[2.0, 2.0, 15.0, 20.0, 20.0, 1.0]"/> <!-- gama_1_2s real -->
-    <arg name="gama"                                        default="[4.5, 4.5, 40.0, 20.0, 20.0, 1.0]"/> <!-- gama_1_2s real -->
+    <arg name="gama"                                        default="[5.0, 5.0, 40.0, 20.0, 20.0, 1.0]"/> <!-- gama_1_2s real -->
 
 
     <node name="$(arg base_name)" pkg="imbvs_with_obstacles_avoidance" type="imbvs_with_obstacles_avoidance_node" respawn="false" output="screen">
