@@ -235,7 +235,7 @@ private:
 
   /**
    * @brief pointcloudsFusion All fusion calculations
-   * @param in_clouds_ptr Container for all input pointlcoud pointers
+   * @param in_clouds_ptrs Container for all input pointlcoud pointers
    */
   void pointcloudsFusion(std::vector<sensor_msgs::PointCloud2::Ptr>  in_clouds_ptrs);
 };
