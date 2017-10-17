@@ -1,6 +1,6 @@
-# KUKA LWR CONTROLLERS
+# Visual Features Extraction
 
-ROS/indigo package for visual features extraction+
+ROS/indigo package for visual features extraction
 
 ## Overview
 
@@ -27,7 +27,7 @@ The package consists of multiple parameters, which can be modifyed from launch f
   extended_features_var"         default="1.2"/>
   using_colored_blobs"           default="false"/>
   contour_area_threshold"        default="25.0"/>
-  blobs_color_ranges"            default="[ {h_min: 170, h_max: 10}, {h_min: 40, h_max: 80}, {h_min: 100, h_max: 125}, {h_min: 130, h_max: 165} ]"/>   <!-- red, green, blue, magenta -->
+  blobs_color_ranges"            default="[ {h_min: 170, h_max: 10}, {h_min: 40, h_max: 80}, {h_min: 100, h_max: 125}, {h_min: 130, h_max: 165} ]"/>
   arucos_param"                  default="[ {id: 110, size: 0.04}, {id: 120, size: 0.04}, {id: 130, size: 0.04}, {id: 140, size: 0.04} ]"/>
   camera_param_file"             default="$(find usb_cam)/eye_in_hand_640x480.yaml"/>
 
