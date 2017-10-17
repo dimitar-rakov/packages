@@ -1,6 +1,6 @@
 <package format="2">
   <name>kinect_fusion</name>
-  <version>0.8.0</version>
+  <version>1.0.0</version>
   <description>The kinect_fusion package</description>
   <maintainer email="dimitar.rakov@tum.de">Dimitar Rakov</maintainer>
   <license>TODO</license>

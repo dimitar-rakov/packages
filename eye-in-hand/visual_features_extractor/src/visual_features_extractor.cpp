@@ -62,9 +62,9 @@ bool VisualFeaturesExtractor::init(ros::NodeHandle &nh){
     ROS_WARN("Parameter using_colored_blobs was not found. Default value is used: false");
   }
 
-  if (!nh_.getParam("contour_area_threshold", contour_area_threshold_)){
-    nh_.param("contour_area_threshold", contour_area_threshold_, 20.0);
-    ROS_WARN("Parameter contour_area_threshold was not found. Default value is used: %lf", contour_area_threshold_);
+  if (!nh_.getParam("contour_area_threshold", min_contour_area_threshold_)){
+    nh_.param("contour_area_threshold", min_contour_area_threshold_, 20.0);
+    ROS_WARN("Parameter contour_area_threshold was not found. Default value is used: %lf", min_contour_area_threshold_);
   }
 
   if (using_colored_blobs_){
@@ -74,7 +74,7 @@ bool VisualFeaturesExtractor::init(ros::NodeHandle &nh){
     //Get all blobs_color_ranges from yaml
     if ( !nh_.getParam(nh_.getNamespace()+"/"+blobs_param_name, color_ranges ) || color_ranges.getType() != XmlRpc::XmlRpcValue::TypeArray)
       ROS_WARN("%s is not properly set in yaml file",blobs_param_name.c_str());
-    num_features_ = 0;
+    num_extracted_features_ = 0;
     for (size_t i = 0; i < color_ranges.size(); i++){
       if ( color_ranges[i].getType() != XmlRpc::XmlRpcValue::TypeStruct)
         ROS_WARN("color_range[%ld] is not properly set in yaml file", i);
@@ -85,7 +85,7 @@ bool VisualFeaturesExtractor::init(ros::NodeHandle &nh){
         else{
           hue_min_limits_.push_back(static_cast<int> (color_ranges[i][std::string("h_min")]));
           hue_max_limits_.push_back(static_cast<int> (color_ranges[i][std::string("h_max")]));
-          num_features_++;
+          num_extracted_features_++;
         }
       }
     }
@@ -98,7 +98,7 @@ bool VisualFeaturesExtractor::init(ros::NodeHandle &nh){
     if ( !nh_.getParam(nh_.getNamespace()+"/"+aruco_param_name, arucos_param ) || arucos_param.getType() != XmlRpc::XmlRpcValue::TypeArray)
       ROS_WARN("%s is not properly set in yaml file",aruco_param_name.c_str());
 
-    num_features_ = 0;
+    num_extracted_features_ = 0;
     for (size_t i = 0; i < arucos_param.size(); i++){
       if ( arucos_param[i].getType() != XmlRpc::XmlRpcValue::TypeStruct)
         ROS_WARN("arucos_param[%ld] is not properly set in yaml file", i);
@@ -109,7 +109,7 @@ bool VisualFeaturesExtractor::init(ros::NodeHandle &nh){
         else{
           arucos_id.push_back(static_cast<int> (arucos_param[i][std::string("id")]));
           arucos_size.push_back(static_cast<double> (arucos_param[i][std::string("size")]));
-          num_features_++;
+          num_extracted_features_++;
         }
       }
     }
@@ -152,8 +152,8 @@ bool VisualFeaturesExtractor::init(ros::NodeHandle &nh){
   features_names_ = {"f1", "f2", "f3", "f4"};
 
   //Initializing
-  x_.resize(num_features_);
-  y_.resize(num_features_);
+  x_.resize(num_extracted_features_);
+  y_.resize(num_extracted_features_);
 
   //sim features wrt to ics world  default
   //    TFwsf_.setOrigin(tf::Vector3( 0.0,  1.50,  0.75));
@@ -197,14 +197,12 @@ bool VisualFeaturesExtractor::init(ros::NodeHandle &nh){
     sub_img_transport_= it_.subscribe(raw_images_topic_, 1, boost::bind(&VisualFeaturesExtractor::imageCB, this, _1, &cb_images_ptr_, &safety_ton_image_, &image_status_));
 
   // Initialize  publishers
-  pub_vis_features_ = nh_.advertise<visual_features_extractor::VisFeature>(nh_.getNamespace()+"/visual_features_data", 10);
-  pub_all_data_ =  nh_.advertise<std_msgs::Float64MultiArray>(nh_.getNamespace()+"/all_data", 10);
+  pub_vis_data_ = nh_.advertise<visual_features_extractor::VisFeature>(nh_.getNamespace()+"/visual_features_data", 10);
 
   // Initialize  services
   srv_set_sim_features_tf_ = nh_.advertiseService(nh_.getNamespace()+"/set_tf_sim_feature_wrt_world", &VisualFeaturesExtractor::setTfSimFeatureWrtWorld, this);
   srv_set_des_features_tf_ = nh_.advertiseService(nh_.getNamespace()+"/set_tf_des_feature_wrt_camera", &VisualFeaturesExtractor::setTfDesFeatureWrtCamera, this);
   srv_set_des_template_ = nh_.advertiseService(nh_.getNamespace()+"/set_desired_template", &VisualFeaturesExtractor::setDesiredTemplate, this);
-  srv_start_features_rotation_ = nh_.advertiseService(nh_.getNamespace()+"/start_features_rotation", &VisualFeaturesExtractor::startFeaturesRotation, this);
 
   Z_des_ =0.54; // desired
 
@@ -229,21 +227,6 @@ void VisualFeaturesExtractor::update(const ros::Time& time, const ros::Duration&
   }
 
   if (getTFs()){
-
-
-    /// For Test only \todo {Remove}
-    if (enb_rotation_){
-      TFwsf_= TFwsf_ * tf::Transform(tf::createQuaternionFromYaw( -0.004), tf::Vector3( 0.0,  0.0,  0.0));
-      simVisualFeaturesTFs();
-      KDL::Frame F;
-      tf::transformTFToKDL(TFwsf_ ,F);
-      double beta, gama;
-      F.M.GetEulerZYX(msr_a_, beta, gama);
-      ROS_INFO ("-msr_a_ %lf ", -msr_a_);
-
-    }
-
-
     ros::Time tic = ros::Time::now();
     calcFeaturesImageCoord();
     std::vector<cv::Point2d> features_coord;
@@ -296,7 +279,7 @@ void VisualFeaturesExtractor::update(const ros::Time& time, const ros::Duration&
       features_coord = sim_features_coord_;
 
     // Calculation for desired feature
-    visualFeatureMsg_.is_valid_des_feature = calcFeaturesParameters(des_features_coord_);
+    visual_feature_msg_.is_valid_des_feature = calcFeaturesParameters(des_features_coord_);
     mu02des_= mu02_;
     mu20des_ = mu20_;
 
@@ -311,7 +294,7 @@ void VisualFeaturesExtractor::update(const ros::Time& time, const ros::Duration&
       }
     }
 
-    if ( visualFeatureMsg_.is_valid_des_feature) {
+    if ( visual_feature_msg_.is_valid_des_feature) {
       des_angle_ = atan2((des_features_coord_[0].y - des_features_coord_[idx_max_dist_].y),
           (des_features_coord_[idx_max_dist_].x - des_features_coord_[0].x));
       alpha_ = des_angle_;
@@ -340,19 +323,19 @@ void VisualFeaturesExtractor::update(const ros::Time& time, const ros::Duration&
       else
         calcSimple(s_des_, Lhat_des_);
       // Set common data
-      visualFeatureMsg_.size_s_des = s_des_.size();
-      visualFeatureMsg_.rowsLdes = Lhat_des_.rows();
-      visualFeatureMsg_.colsLdes = Lhat_des_.cols();
-      visualFeatureMsg_.s_des.resize(s_des_.size());
-      visualFeatureMsg_.L_data_des.resize(Lhat_des_.rows()*Lhat_des_.cols());
+      visual_feature_msg_.size_s_des = s_des_.size();
+      visual_feature_msg_.rowsLdes = Lhat_des_.rows();
+      visual_feature_msg_.colsLdes = Lhat_des_.cols();
+      visual_feature_msg_.s_des.resize(s_des_.size());
+      visual_feature_msg_.L_data_des.resize(Lhat_des_.rows()*Lhat_des_.cols());
       // Set data for s message
       for(size_t i =0; i < s_des_.size(); i++)
-        visualFeatureMsg_.s_des[i] = s_des_[i];
+        visual_feature_msg_.s_des[i] = s_des_[i];
 
       // Set data for L message
       for(int r =0; r < Lhat_des_.rows(); r++){
         for(int c =0; c < Lhat_des_.cols(); c++){
-          visualFeatureMsg_.L_data_des[r*Lhat_des_.cols() + c] = Lhat_des_(r, c);
+          visual_feature_msg_.L_data_des[r*Lhat_des_.cols() + c] = Lhat_des_(r, c);
         }
       }
       ROS_INFO ("The distance Z to the desired feature is %.4lf", Z_des_ );
@@ -361,21 +344,21 @@ void VisualFeaturesExtractor::update(const ros::Time& time, const ros::Duration&
     }
 
     // Smoothing founded coordinates
-    if (features_coord.size() == num_features_ && work_features_coord_.size()!= num_features_ )
+    if (features_coord.size() == num_extracted_features_ && work_features_coord_.size()!= num_extracted_features_ )
       work_features_coord_ = features_coord;
-    else if (features_coord.size()== num_features_ && work_features_coord_.size()== num_features_){
+    else if (features_coord.size()== num_extracted_features_ && work_features_coord_.size()== num_extracted_features_){
       for (size_t i =0; i<features_coord.size(); i++){
         work_features_coord_[i].x = filters::exponentialSmoothing(features_coord[i].x, work_features_coord_[i].x, 0.9);
         work_features_coord_[i].y = filters::exponentialSmoothing(features_coord[i].y, work_features_coord_[i].y, 0.9);
       }
     }
-    else if (features_coord.size() != num_features_ )
+    else if (features_coord.size() != num_extracted_features_ )
       work_features_coord_ = features_coord;
 
     // Calculation for measured feature (real/sim)
-    visualFeatureMsg_.is_valid_msr_feature = calcFeaturesParameters(work_features_coord_);
+    visual_feature_msg_.is_valid_msr_feature = calcFeaturesParameters(work_features_coord_);
     showAll(rect_image_, contours, markers, work_features_coord_, founded_features_names );
-    if (visualFeatureMsg_.is_valid_msr_feature){
+    if (visual_feature_msg_.is_valid_msr_feature){
       // Calculate angle between horizontal axis and
       msr_angle_ = atan2((work_features_coord_[0].y - work_features_coord_[idx_max_dist_].y),
           (work_features_coord_[idx_max_dist_].x - work_features_coord_[0].x));
@@ -405,20 +388,20 @@ void VisualFeaturesExtractor::update(const ros::Time& time, const ros::Duration&
         calcSimple(s_msr_, Lhat_msr_);
 
       // Set common data
-      visualFeatureMsg_.size_s_msr = s_msr_.size();
-      visualFeatureMsg_.rowsLmsr = Lhat_msr_.rows();
-      visualFeatureMsg_.colsLmsr = Lhat_msr_.cols();
-      visualFeatureMsg_.s_msr.resize(s_msr_.size());
-      visualFeatureMsg_.L_data_msr.resize(Lhat_msr_.rows()*Lhat_msr_.cols());
+      visual_feature_msg_.size_s_msr = s_msr_.size();
+      visual_feature_msg_.rowsLmsr = Lhat_msr_.rows();
+      visual_feature_msg_.colsLmsr = Lhat_msr_.cols();
+      visual_feature_msg_.s_msr.resize(s_msr_.size());
+      visual_feature_msg_.L_data_msr.resize(Lhat_msr_.rows()*Lhat_msr_.cols());
 
       // Set data for s message
       for(size_t i =0; i < s_msr_.size(); i++)
-        visualFeatureMsg_.s_msr[i] = s_msr_[i];
+        visual_feature_msg_.s_msr[i] = s_msr_[i];
 
       // Set data for L message
       for(int r =0; r < Lhat_msr_.rows(); r++){
         for(int c =0; c < Lhat_msr_.cols(); c++){
-          visualFeatureMsg_.L_data_msr[r*Lhat_msr_.cols() + c] = Lhat_msr_(r, c);
+          visual_feature_msg_.L_data_msr[r*Lhat_msr_.cols() + c] = Lhat_msr_(r, c);
         }
       }
       ROS_INFO ("The distance Z to the measured feature is %.4lf", Z_ );
@@ -428,9 +411,9 @@ void VisualFeaturesExtractor::update(const ros::Time& time, const ros::Duration&
     }
   }
 
-  visualFeatureMsg_.header.stamp = ros::Time::now();
-  visualFeatureMsg_.numFeatures = num_features_;
-  pub_vis_features_.publish(visualFeatureMsg_);
+  visual_feature_msg_.header.stamp = ros::Time::now();
+  visual_feature_msg_.numFeatures = num_extracted_features_;
+  pub_vis_data_.publish(visual_feature_msg_);
 
   // update time for simulated features TF
   for (size_t i = 0; i< allTFwff_.size(); i++)
@@ -463,7 +446,7 @@ bool VisualFeaturesExtractor::setTfDesFeatureWrtCamera(
   return true;
 }
 
-bool VisualFeaturesExtractor:: setDesiredTemplate(visual_features_extractor::set_depth::Request &req, visual_features_extractor::set_depth::Response &res)
+bool VisualFeaturesExtractor:: setDesiredTemplate(visual_features_extractor::SetDepth::Request &req, visual_features_extractor::SetDepth::Response &res)
 {
 
   tf::Transform TFcdf;
@@ -518,7 +501,7 @@ bool VisualFeaturesExtractor:: setDesiredTemplate(visual_features_extractor::set
       features_coord.push_back(fc);
       std::cout << "new desired features "<< " ["<<fc.x<<"  " <<fc.y<<"]   ";
     }
-    if(features_coord.size() != num_features_)
+    if(features_coord.size() != num_extracted_features_)
       ROS_WARN ("Founded features are inconsistent");
     else{
       ROS_WARN ("Founded features are ok");
@@ -651,9 +634,8 @@ void VisualFeaturesExtractor::imageCB(
   }
 }
 
-void VisualFeaturesExtractor::findBlobsContours(
-    const cv::Mat &srs_image, std::vector<std::vector<cv::Point> >  &dst_contours,
-    std::vector<std::string> &founded_features_names)
+void VisualFeaturesExtractor::findBlobsContours(const cv::Mat &srs_image, std::vector<std::vector<cv::Point> >  &dst_contours,
+    std::vector<std::string> &dst_found_features_names)
 {
 
   std::vector<cv::Vec4i> hierarchy;
@@ -665,7 +647,7 @@ void VisualFeaturesExtractor::findBlobsContours(
   cv::GaussianBlur(hsv_work, hsv_work, cv::Size(5, 5), 1, 1);
   dst_contours.clear();
   mask_image_.release();
-  founded_features_names.clear();
+  dst_found_features_names.clear();
 
   for (size_t i = 0; i< hue_min_limits_.size(); i++){
 
@@ -686,12 +668,12 @@ void VisualFeaturesExtractor::findBlobsContours(
     mask.copyTo(contour_image);
     std::vector<std::vector<cv::Point> > tmp_contours;
     cv::findContours( contour_image, tmp_contours, hierarchy, CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
-    std::vector<std::vector<cv::Point> > best_contours = getBestNContours(tmp_contours, contour_area_threshold_);
+    std::vector<std::vector<cv::Point> > best_contours = getBestNContours(tmp_contours, min_contour_area_threshold_);
 
     // Remove all week contours
     if (!best_contours.empty()){
       dst_contours.push_back(best_contours[0]);
-      founded_features_names.push_back(features_names_[i]);
+      dst_found_features_names.push_back(features_names_[i]);
     }
   }
 }
@@ -719,9 +701,8 @@ void VisualFeaturesExtractor::findArucoMarkers(
   }
 }
 
-void VisualFeaturesExtractor::showAll(
-    const cv::Mat &srs_image, const std::vector<std::vector<cv::Point> > &src_contours,
-    const std::vector<aruco::Marker> &srs_markers, const std::vector<cv::Point2d> &coord,
+void VisualFeaturesExtractor::showAll(const cv::Mat &srs_image, const std::vector<std::vector<cv::Point> > &src_contours,
+    const std::vector<aruco::Marker> &srs_markers, const std::vector<cv::Point2d> &src_coord,
     const std::vector<std::string> &founded_features_names)
 {
 
@@ -729,7 +710,7 @@ void VisualFeaturesExtractor::showAll(
   std::vector<cv::Point2d> mc;
 
   if (!using_sim_features_){
-    mc = coord;
+    mc = src_coord;
     for( size_t i = 0; i< mc.size(); i++ ){
       if (using_colored_blobs_)
         cv::drawContours( drawing_image_, src_contours, i, cv::Scalar(0,0,255), 2);
@@ -807,9 +788,9 @@ bool VisualFeaturesExtractor::calcFeaturesParameters(const std::vector<cv::Point
     norm_pixel_coord[i].y = (in_features_coord[i].y - cam_param_.P[6])/cam_param_.P[5];
   }
 
-  if (norm_pixel_coord.size() == num_features_){
+  if (norm_pixel_coord.size() == num_extracted_features_){
 
-    for (size_t i = 0; i < num_features_; i++){
+    for (size_t i = 0; i < num_extracted_features_; i++){
       x_(i) = norm_pixel_coord[i].x;
       y_(i) = norm_pixel_coord[i].y;
     }
@@ -905,9 +886,9 @@ double VisualFeaturesExtractor::calcCentralMoment(const std::vector<cv::Point2d>
 
 void VisualFeaturesExtractor::calcSimple(Eigen::VectorXd &s, Eigen::MatrixXd &L){
 
-  s.resize(2*num_features_);
-  L.resize(2*num_features_, 6);
-  for (size_t i = 0; i< num_features_; i++){
+  s.resize(2*num_extracted_features_);
+  L.resize(2*num_extracted_features_, 6);
+  for (size_t i = 0; i< num_extracted_features_; i++){
     s(2*i)= x_(i);
     s(2*i +1)= y_(i);
     L.row(2*i) <<   -1/Z_,     0,  x_[i]/Z_,      x_[i] * y_[i], -(1 +x_[i] * x_[i]),  y_[i];
@@ -1457,15 +1438,5 @@ void VisualFeaturesExtractor::calcFeaturesImageCoord(){
   ROS_DEBUG_STREAM("Des features:" << stream.str() );
 }
 
-bool VisualFeaturesExtractor::startFeaturesRotation(std_srvs::Empty::Request &req, std_srvs::Empty::Request &res){
-  enb_rotation_= true;
-  if(!enb_rotation_){
-    TFwe_.setOrigin(tf::Vector3(0.000, 0.695, 0.854));
-    TFwe_.setRotation(tf::Quaternion(0.707106781, 0.707106781, 0.000, 0.000));
-  }
-
-  return true;
-
-}
 
 

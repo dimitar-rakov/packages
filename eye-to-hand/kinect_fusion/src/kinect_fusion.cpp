@@ -116,34 +116,34 @@ bool KinectFusion::init(ros::NodeHandle &nh)
   }
 
 
-  ts_a6_.reset (new message_filters::Synchronizer<sync_policy6> (QUEUE_SIZE));
+  ts_a6_ptr_.reset (new message_filters::Synchronizer<sync_policy6> (QUEUE_SIZE));
   // Use the first filter as default, when the number of topics is less than 6
   switch (point_topics_.size()) {
   case 2:
-    ts_a6_->connectInput (*msg_filters_[0], *msg_filters_[1], *msg_filters_[0], *msg_filters_[0], *msg_filters_[0], *msg_filters_[0]);
+    ts_a6_ptr_->connectInput (*msg_filters_[0], *msg_filters_[1], *msg_filters_[0], *msg_filters_[0], *msg_filters_[0], *msg_filters_[0]);
     break;
   case 3:
-    ts_a6_->connectInput (*msg_filters_[0], *msg_filters_[1], *msg_filters_[2], *msg_filters_[0], *msg_filters_[0], *msg_filters_[0]);
+    ts_a6_ptr_->connectInput (*msg_filters_[0], *msg_filters_[1], *msg_filters_[2], *msg_filters_[0], *msg_filters_[0], *msg_filters_[0]);
     break;
   case 4:
-    ts_a6_->connectInput (*msg_filters_[0], *msg_filters_[1], *msg_filters_[2], *msg_filters_[3], *msg_filters_[0], *msg_filters_[0]);
+    ts_a6_ptr_->connectInput (*msg_filters_[0], *msg_filters_[1], *msg_filters_[2], *msg_filters_[3], *msg_filters_[0], *msg_filters_[0]);
     break;
   case 5:
-    ts_a6_->connectInput (*msg_filters_[0], *msg_filters_[1], *msg_filters_[2], *msg_filters_[3], *msg_filters_[4], *msg_filters_[0]);
+    ts_a6_ptr_->connectInput (*msg_filters_[0], *msg_filters_[1], *msg_filters_[2], *msg_filters_[3], *msg_filters_[4], *msg_filters_[0]);
     break;
   case 6:
-    ts_a6_->connectInput (*msg_filters_[0], *msg_filters_[1], *msg_filters_[2], *msg_filters_[3], *msg_filters_[4], *msg_filters_[5]);
+    ts_a6_ptr_->connectInput (*msg_filters_[0], *msg_filters_[1], *msg_filters_[2], *msg_filters_[3], *msg_filters_[4], *msg_filters_[5]);
     break;
   default:
     ROS_ERROR ("Inappropriate size of the toipics!");
     break;
   }
 
-  ts_a6_->registerCallback (boost::bind (&KinectFusion::syncPointcloudsCB, this, _1, _2, _3, _4, _5, _6));
+  ts_a6_ptr_->registerCallback (boost::bind (&KinectFusion::syncPointcloudsCB, this, _1, _2, _3, _4, _5, _6));
 
-  pub_points = nh_.advertise<sensor_msgs::PointCloud2> (nh_.getNamespace()+"/points", 1);
-  pub_points1 = nh_.advertise<sensor_msgs::PointCloud2> (nh_.getNamespace()+"/points1", 1);
-  pub_points2 = nh_.advertise<sensor_msgs::PointCloud2> (nh_.getNamespace()+"/points2", 1);
+  pub_fussed_points = nh_.advertise<sensor_msgs::PointCloud2> (nh_.getNamespace()+"/points", 1);
+  pub_transformed_points1 = nh_.advertise<sensor_msgs::PointCloud2> (nh_.getNamespace()+"/points1", 1);
+  pub_transformed_points2 = nh_.advertise<sensor_msgs::PointCloud2> (nh_.getNamespace()+"/points2", 1);
 
   ROS_INFO ("KinectFusion with name %s is initialized", base_name_.c_str());
   return true;
@@ -332,14 +332,14 @@ void KinectFusion::syncPointcloudsCB( const sensor_msgs::PointCloud2ConstPtr &ms
   pointcloudsFusion(cb_clouds_ptr_);
 }
 
-void KinectFusion::pointcloudsFusion(std::vector<sensor_msgs::PointCloud2::Ptr>  in_clouds_ptr){
+void KinectFusion::pointcloudsFusion(std::vector<sensor_msgs::PointCloud2::Ptr>  in_clouds_ptrs){
 
   ros::Time tic_all = ros::Time::now();
   ros::Time tic = ros::Time::now();
-  pcl_ros::transformPointCloud ("world", *in_clouds_ptr[0], *transf_clouds_ptr_[0], lr_);
+  pcl_ros::transformPointCloud ("world", *in_clouds_ptrs[0], *transf_clouds_ptr_[0], lr_);
   ROS_DEBUG("Transform 1 takes %lf" , (ros::Time::now() -tic).toSec());
   tic = ros::Time::now();
-  pcl_ros::transformPointCloud ("world", *in_clouds_ptr[1], *transf_clouds_ptr_[1], lr_);
+  pcl_ros::transformPointCloud ("world", *in_clouds_ptrs[1], *transf_clouds_ptr_[1], lr_);
   ROS_DEBUG("Transform 2 takes %lf" , (ros::Time::now() -tic).toSec());
   tic = ros::Time::now();
   pcl::concatenatePointCloud (*transf_clouds_ptr_[0], *transf_clouds_ptr_[1], *fused_cloud_ptr_);
@@ -347,27 +347,27 @@ void KinectFusion::pointcloudsFusion(std::vector<sensor_msgs::PointCloud2::Ptr> 
 
   /// \todo { Test all cases for more than 2 kinects}
   if (point_topics_.size() > 2){
-    pcl_ros::transformPointCloud ("world", *in_clouds_ptr[2], *transf_clouds_ptr_[2], lr_);
+    pcl_ros::transformPointCloud ("world", *in_clouds_ptrs[2], *transf_clouds_ptr_[2], lr_);
     pcl::concatenatePointCloud (*transf_clouds_ptr_[2], *fused_cloud_ptr_, *fused_cloud_ptr_);
   }
   if (point_topics_.size() > 3){
-    pcl_ros::transformPointCloud ("world", *in_clouds_ptr[3], *transf_clouds_ptr_[3], lr_);
+    pcl_ros::transformPointCloud ("world", *in_clouds_ptrs[3], *transf_clouds_ptr_[3], lr_);
     pcl::concatenatePointCloud (*transf_clouds_ptr_[3], *fused_cloud_ptr_, *fused_cloud_ptr_);
   }
   if (point_topics_.size() > 4){
-    pcl_ros::transformPointCloud ("world", *in_clouds_ptr[4], *transf_clouds_ptr_[4], lr_);
+    pcl_ros::transformPointCloud ("world", *in_clouds_ptrs[4], *transf_clouds_ptr_[4], lr_);
     pcl::concatenatePointCloud (*transf_clouds_ptr_[4], *fused_cloud_ptr_, *fused_cloud_ptr_);
   }
   if (point_topics_.size() > 5){
-    pcl_ros::transformPointCloud ("world", *in_clouds_ptr[5], *transf_clouds_ptr_[5], lr_);
+    pcl_ros::transformPointCloud ("world", *in_clouds_ptrs[5], *transf_clouds_ptr_[5], lr_);
     pcl::concatenatePointCloud (*transf_clouds_ptr_[5], *fused_cloud_ptr_, *fused_cloud_ptr_);
   }
 
   fused_cloud_ptr_->header.stamp = ros::Time::now();
   transf_clouds_ptr_[0]->header.stamp = ros::Time::now();
   transf_clouds_ptr_[1]->header.stamp = ros::Time::now();
-  pub_points.publish(*fused_cloud_ptr_);
-  pub_points1.publish(*transf_clouds_ptr_[0]);
-  pub_points2.publish(*transf_clouds_ptr_[1]);
+  pub_fussed_points.publish(*fused_cloud_ptr_);
+  pub_transformed_points1.publish(*transf_clouds_ptr_[0]);
+  pub_transformed_points2.publish(*transf_clouds_ptr_[1]);
   ROS_INFO("clouds Fusion takes %lf Pointcloud height %d and width %d" , (ros::Time::now() -tic_all).toSec(), fused_cloud_ptr_->height, fused_cloud_ptr_->width);
 }

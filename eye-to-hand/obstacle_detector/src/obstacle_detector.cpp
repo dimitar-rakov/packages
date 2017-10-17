@@ -21,11 +21,6 @@ bool ObstacleDetector::init(ros::NodeHandle &nh){
     ROS_WARN("Parameter base_name was not found. Default name is used: %s ", base_name_.c_str());
   }
 
-  if (!nh_.getParam("sim_obstacle_enb", sim_obstacles_enb_)){
-    nh_.param("sim_obstacle_enb", sim_obstacles_enb_, false);
-    ROS_WARN("Parameter sim_obstacle_enb was not found. Default value is used: false");
-  }
-
   // Get point topic from parameter server
   if (!nh_.getParam("points_topic", points_topic_)){
     nh_.param("points_topic", points_topic_, std::string ("/kinect_fusion/points"));
@@ -108,7 +103,7 @@ bool ObstacleDetector::init(ros::NodeHandle &nh){
   marker.color.g = 0.0;
   marker.color.b = 0.0;
   marker.lifetime = ros::Duration(1);
-  obstacle_objects_.markers.push_back(marker);
+  obstacles_objects_.markers.push_back(marker);
   cb_ros_cloud_ptr_.reset(new sensor_msgs::PointCloud2());
   filtered_ros_cloud_ptr_.reset(new sensor_msgs::PointCloud2());
   in_cloud_ptr_.reset(new pcl::PointCloud<pcl::PointXYZ>());
@@ -124,7 +119,7 @@ bool ObstacleDetector::init(ros::NodeHandle &nh){
 
   srv_set_obstacle_trajectory_ = nh_.advertiseService(nh_.getNamespace()+"/set_obstacle_trajectory", &ObstacleDetector::setObstacleTrajectory, this);
   pub_output_cloud_ = nh_.advertise<sensor_msgs::PointCloud2> (nh_.getNamespace()+"/output_cloud", 1);
-  pub_markers_obstacle_objects_ = nh_.advertise<visualization_msgs::MarkerArray>(nh_.getNamespace()+"/obstacle_objects", 1 );
+  pub_markers_obstacles_objects_ = nh_.advertise<visualization_msgs::MarkerArray>(nh_.getNamespace()+"/obstacle_objects", 1 );
 
   TFs_.resize(tf_names_.size()-1);
   TFs_fixed_.resize(tf_names_.size());
@@ -300,8 +295,8 @@ void ObstacleDetector::publish(){
     pub_markers_filter_robot_objects_.publish(filter_robot_objects_);
   if (!filter_robot_objects_fixed_.markers.empty())
     pub_markers_filter_robot_objects_fixed_.publish(filter_robot_objects_fixed_);
-  if (!obstacle_objects_.markers.empty()){
-    pub_markers_obstacle_objects_.publish(obstacle_objects_);
+  if (!obstacles_objects_.markers.empty()){
+    pub_markers_obstacles_objects_.publish(obstacles_objects_);
   }
   if (!filtered_ros_cloud_ptr_->data.empty()){
     filtered_ros_cloud_ptr_->header.stamp = ros::Time::now();
@@ -450,13 +445,13 @@ void ObstacleDetector::getFilterObjectsParameters(XmlRpc::XmlRpcValue &obj, visu
 
 }
 
-void ObstacleDetector::filterBoxOut(const visualization_msgs::Marker &filter_object, const pcl::PointCloud<pcl::PointXYZ>::Ptr &ptr_in_cloud, pcl::PointCloud<pcl::PointXYZ>::Ptr &ptr_filtered_cloud){
+void ObstacleDetector::filterBoxOut(const visualization_msgs::Marker &filter_object, const pcl::PointCloud<pcl::PointXYZ>::Ptr &in_cloud_ptr, pcl::PointCloud<pcl::PointXYZ>::Ptr &filtered_cloud_ptr){
 
     // Passtrough filters to build box inliers / outliers (faster than cropbox and conditional remove)
     pcl::PassThrough<pcl::PointXYZ> pass;
     pcl::ExtractIndices<pcl::PointXYZ> extract;
-    pass.setInputCloud (ptr_in_cloud);
-    extract.setInputCloud (ptr_in_cloud);
+    pass.setInputCloud (in_cloud_ptr);
+    extract.setInputCloud (in_cloud_ptr);
     pass.setFilterFieldName ("x");
     double min =  filter_object.pose.position.x - 0.5 * filter_object.scale.x;
     double max =  filter_object.pose.position.x + 0.5 * filter_object.scale.x;
@@ -483,25 +478,25 @@ void ObstacleDetector::filterBoxOut(const visualization_msgs::Marker &filter_obj
     if (filter_object.text == std::string("KEEP")){
       extract.setIndices (indices_z);
       extract.setNegative (false);
-      extract.filter (*ptr_filtered_cloud);
+      extract.filter (*filtered_cloud_ptr);
     }
     else if (filter_object.text == std::string("REMOVE")){
       extract.setIndices (indices_z);
       extract.setNegative (true);
-      extract.filter (*ptr_filtered_cloud);
+      extract.filter (*filtered_cloud_ptr);
     }
 }
 
 
-void ObstacleDetector::filterSphereOut(const visualization_msgs::Marker &filter_objects, const pcl::PointCloud<pcl::PointXYZ>::Ptr &ptr_in_cloud, pcl::PointCloud<pcl::PointXYZ>::Ptr &ptr_filtered_cloud){
+void ObstacleDetector::filterSphereOut(const visualization_msgs::Marker &filter_object, const pcl::PointCloud<pcl::PointXYZ>::Ptr &in_cloud_ptr, pcl::PointCloud<pcl::PointXYZ>::Ptr &filtered_cloud_ptr){
 
     /// check if point is inside of any of safety spheres
-    float xc = static_cast<float>(filter_objects.pose.position.x);
-    float yc = static_cast<float>(filter_objects.pose.position.y);
-    float zc = static_cast<float>(filter_objects.pose.position.z);
-    float inv_a = static_cast<float>(1/(0.5 * filter_objects.scale.x));
-    float inv_b = static_cast<float>(1/(0.5 * filter_objects.scale.y));
-    float inv_c = static_cast<float>(1/(0.5 * filter_objects.scale.z));
+    float xc = static_cast<float>(filter_object.pose.position.x);
+    float yc = static_cast<float>(filter_object.pose.position.y);
+    float zc = static_cast<float>(filter_object.pose.position.z);
+    float inv_a = static_cast<float>(1/(0.5 * filter_object.scale.x));
+    float inv_b = static_cast<float>(1/(0.5 * filter_object.scale.y));
+    float inv_c = static_cast<float>(1/(0.5 * filter_object.scale.z));
     pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
 
     for (size_t j = 0; j < filtered_cloud_ptr_->size(); j++){
@@ -516,10 +511,10 @@ void ObstacleDetector::filterSphereOut(const visualization_msgs::Marker &filter_
 
   // Remove inliers, extract the rest
   pcl::ExtractIndices<pcl::PointXYZ> extract;
-  extract.setInputCloud (ptr_in_cloud);
+  extract.setInputCloud (in_cloud_ptr);
   extract.setIndices (inliers);
-  extract.setNegative (filter_objects.text == std::string("REMOVE"));
-  extract.filter (*ptr_filtered_cloud);
+  extract.setNegative (filter_object.text == std::string("REMOVE"));
+  extract.filter (*filtered_cloud_ptr);
 
 }
 
@@ -531,9 +526,9 @@ void ObstacleDetector::simMovingObstacle(const ros::Duration &period){
 
   if (obst_curr_distance_ <distance){
     tf::Vector3 v= obst_start_position_ + (obst_curr_distance_/distance) * (obst_end_position_-obst_start_position_);
-    obstacle_objects_.markers[0].pose.position.x = v.x();
-    obstacle_objects_.markers[0].pose.position.y = v.y();
-    obstacle_objects_.markers[0].pose.position.z = v.z();
+    obstacles_objects_.markers[0].pose.position.x = v.x();
+    obstacles_objects_.markers[0].pose.position.y = v.y();
+    obstacles_objects_.markers[0].pose.position.z = v.z();
     obst_curr_distance_+= t;
   }
   else
@@ -620,7 +615,7 @@ void ObstacleDetector:: detectObstaclesAsBox(){
     marker.color.b = 0.0;
     marker.text = std::string("KEEP");
     marker.lifetime = ros::Duration(0.5);
-    obstacle_objects_.markers.push_back(marker);
+    obstacles_objects_.markers.push_back(marker);
 
   }
 }
@@ -655,9 +650,9 @@ void ObstacleDetector::detectOctreeVoxels(){
 //    }
 
     tic = ros::Time::now();
-    visualization_msgs::Marker marker =  obstacle_objects_.markers[0];
-    obstacle_objects_.markers.clear();
-    obstacle_objects_.markers.push_back(marker);
+    visualization_msgs::Marker marker =  obstacles_objects_.markers[0];
+    obstacles_objects_.markers.clear();
+    obstacles_objects_.markers.push_back(marker);
     marker.color.a = 0.5;
     marker.color.r = 1.0;
     marker.color.g = 1.0;
@@ -682,10 +677,10 @@ void ObstacleDetector::detectOctreeVoxels(){
         marker.pose.position.x= point_grid[i].x;
         marker.pose.position.y= point_grid[i].y;
         marker.pose.position.z= point_grid[i].z;
-        obstacle_objects_.markers.push_back(marker);
+        obstacles_objects_.markers.push_back(marker);
       }
     }
-    ROS_WARN("Processing 3.3 (inliers() takes %lf Size of out point_grid %ld" ,(ros::Time::now() -tic).toSec(), obstacle_objects_.markers.size());
+    ROS_WARN("Processing 3.3 (inliers() takes %lf Size of out point_grid %ld" ,(ros::Time::now() -tic).toSec(), obstacles_objects_.markers.size());
   }
 
 }

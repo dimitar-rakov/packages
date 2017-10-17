@@ -6,7 +6,7 @@
     <arg name="fixed_frame"         default="world"/>
     <arg name="tf_names"            default="[lwr_base_link, lwr_a1_link, lwr_a2_link, lwr_e1_link, lwr_a3_link, lwr_a4_link, lwr_a5_link, lwr_a6_link]"/>
     <arg name="octree_resolution"   default="0.14"/>
-    <arg name="min_voxel_points"    default="30"/>
+    <arg name="min_voxel_points"    default="40"/>
 
     <node name="$(arg base_name)"       pkg="obstacle_detector" type="obstacle_detector_node" output="screen">
         <rosparam file="$(find obstacle_detector)/config/hri_parameters.yaml" command="load"/>
