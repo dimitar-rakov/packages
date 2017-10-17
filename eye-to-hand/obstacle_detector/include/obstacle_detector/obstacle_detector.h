@@ -105,17 +105,17 @@ private:
   /// Container for all robot transformations in wrt to defined on parameter server @par fixed_frame_
   std::vector<tf::Transform> TFs_fixed_;
 
-  /// Marker array for approximation of the obstacles
-  visualization_msgs::MarkerArray obstacles_objects_;
+  /// Pointer to marker array for approximation of the obstacles
+  visualization_msgs::MarkerArray::Ptr obstacles_objects_ptr_;
 
-  /// Marker array for representing of enviromental objects
-  visualization_msgs::MarkerArray filter_env_objects_;
+  /// Pointer to marker array for representing of enviromental objects
+  visualization_msgs::MarkerArray::Ptr filter_env_objects_ptr_;
 
-  /// Marker array for representing of robot body with chain transformations
-  visualization_msgs::MarkerArray filter_robot_objects_;
+  /// Pointer to marker array for representing of robot body with chain transformations
+  visualization_msgs::MarkerArray::Ptr filter_robot_objects_ptr_;
 
-  /// Marker array for representing of robot body with fixed transformations
-  visualization_msgs::MarkerArray filter_robot_objects_fixed_;
+  /// Pointer to marker array for representing of robot body with fixed transformations
+  visualization_msgs::MarkerArray::Ptr filter_robot_objects_fixed_ptr_;
 
   /// Pointer related to ros pointcloud, used only in callback
   sensor_msgs::PointCloud2::Ptr cb_ros_cloud_ptr_;
@@ -224,7 +224,7 @@ private:
    * @param ns namespace of the input object on parameter server
    */
   void getFilterObjectsParameters(XmlRpc::XmlRpcValue &obj,
-                                  visualization_msgs::MarkerArray &filter_objects,
+                                  visualization_msgs::MarkerArray::Ptr &filter_objects,
                                   const std::string &ns);
 
   /**

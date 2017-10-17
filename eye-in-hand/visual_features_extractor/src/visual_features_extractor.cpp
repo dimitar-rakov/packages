@@ -160,8 +160,8 @@ bool VisualFeaturesExtractor::init(ros::NodeHandle &nh){
   //    TFwsf_.setRotation(tf::createQuaternionFromRPY(M_PI_2,  0,  0));
 
   //sim features wrt to ics world (on bottom)
-  //    TFwsf_.setOrigin(tf::Vector3( 0.0,  0.65,  0.0));
-  //    TFwsf_.setRotation(tf::createQuaternionFromRPY( 0.0,  0,  0));
+      TFwsf_.setOrigin(tf::Vector3( 0.0,  0.65,  0.0));
+      TFwsf_.setRotation(tf::createQuaternionFromRPY( 0.0,  0,  0));
 
   //sim features wrt to ics world (on top)
   //    TFwsf_.setOrigin(tf::Vector3(0.0, 0.65, 2.5));
@@ -176,8 +176,8 @@ bool VisualFeaturesExtractor::init(ros::NodeHandle &nh){
   //    TFwsf_.setRotation(tf::createQuaternionFromRPY(M_PI_2, 0, M_PI_2));
 
   // sim features wrt to hri world  default
-  TFwsf_.setOrigin(tf::Vector3( 0.0,  -0.23,  0.78));
-  TFwsf_.setRotation(tf::createQuaternionFromRPY(0,  0,  0));
+//  TFwsf_.setOrigin(tf::Vector3( 0.0,  -0.23,  0.78));
+//  TFwsf_.setRotation(tf::createQuaternionFromRPY(0,  0,  0));
 
 
   //Kept only for test
@@ -225,6 +225,9 @@ void VisualFeaturesExtractor::update(const ros::Time& time, const ros::Duration&
     else if (image_status_ == -1 && !using_sim_features_) ROS_WARN_THROTTLE(5, "Waiting for image's topic");
     in_images_ptr_ =cb_images_ptr_;
   }
+
+  // Message for visual data publisher
+  visual_features_extractor::VisFeature::Ptr feature_data_msg_ptr(new visual_features_extractor::VisFeature()) ;
 
   if (getTFs()){
     ros::Time tic = ros::Time::now();
@@ -279,7 +282,7 @@ void VisualFeaturesExtractor::update(const ros::Time& time, const ros::Duration&
       features_coord = sim_features_coord_;
 
     // Calculation for desired feature
-    visual_feature_msg_.is_valid_des_feature = calcFeaturesParameters(des_features_coord_);
+    feature_data_msg_ptr->is_valid_des_feature = calcFeaturesParameters(des_features_coord_);
     mu02des_= mu02_;
     mu20des_ = mu20_;
 
@@ -294,7 +297,7 @@ void VisualFeaturesExtractor::update(const ros::Time& time, const ros::Duration&
       }
     }
 
-    if ( visual_feature_msg_.is_valid_des_feature) {
+    if ( feature_data_msg_ptr->is_valid_des_feature) {
       des_angle_ = atan2((des_features_coord_[0].y - des_features_coord_[idx_max_dist_].y),
           (des_features_coord_[idx_max_dist_].x - des_features_coord_[0].x));
       alpha_ = des_angle_;
@@ -323,19 +326,19 @@ void VisualFeaturesExtractor::update(const ros::Time& time, const ros::Duration&
       else
         calcSimple(s_des_, Lhat_des_);
       // Set common data
-      visual_feature_msg_.size_s_des = s_des_.size();
-      visual_feature_msg_.rowsLdes = Lhat_des_.rows();
-      visual_feature_msg_.colsLdes = Lhat_des_.cols();
-      visual_feature_msg_.s_des.resize(s_des_.size());
-      visual_feature_msg_.L_data_des.resize(Lhat_des_.rows()*Lhat_des_.cols());
+      feature_data_msg_ptr->size_s_des = s_des_.size();
+      feature_data_msg_ptr->rowsLdes = Lhat_des_.rows();
+      feature_data_msg_ptr->colsLdes = Lhat_des_.cols();
+      feature_data_msg_ptr->s_des.resize(s_des_.size());
+      feature_data_msg_ptr->L_data_des.resize(Lhat_des_.rows()*Lhat_des_.cols());
       // Set data for s message
       for(size_t i =0; i < s_des_.size(); i++)
-        visual_feature_msg_.s_des[i] = s_des_[i];
+        feature_data_msg_ptr->s_des[i] = s_des_[i];
 
       // Set data for L message
       for(int r =0; r < Lhat_des_.rows(); r++){
         for(int c =0; c < Lhat_des_.cols(); c++){
-          visual_feature_msg_.L_data_des[r*Lhat_des_.cols() + c] = Lhat_des_(r, c);
+          feature_data_msg_ptr->L_data_des[r*Lhat_des_.cols() + c] = Lhat_des_(r, c);
         }
       }
       ROS_INFO ("The distance Z to the desired feature is %.4lf", Z_des_ );
@@ -356,9 +359,9 @@ void VisualFeaturesExtractor::update(const ros::Time& time, const ros::Duration&
       work_features_coord_ = features_coord;
 
     // Calculation for measured feature (real/sim)
-    visual_feature_msg_.is_valid_msr_feature = calcFeaturesParameters(work_features_coord_);
+    feature_data_msg_ptr->is_valid_msr_feature = calcFeaturesParameters(work_features_coord_);
     showAll(rect_image_, contours, markers, work_features_coord_, founded_features_names );
-    if (visual_feature_msg_.is_valid_msr_feature){
+    if (feature_data_msg_ptr->is_valid_msr_feature){
       // Calculate angle between horizontal axis and
       msr_angle_ = atan2((work_features_coord_[0].y - work_features_coord_[idx_max_dist_].y),
           (work_features_coord_[idx_max_dist_].x - work_features_coord_[0].x));
@@ -388,20 +391,20 @@ void VisualFeaturesExtractor::update(const ros::Time& time, const ros::Duration&
         calcSimple(s_msr_, Lhat_msr_);
 
       // Set common data
-      visual_feature_msg_.size_s_msr = s_msr_.size();
-      visual_feature_msg_.rowsLmsr = Lhat_msr_.rows();
-      visual_feature_msg_.colsLmsr = Lhat_msr_.cols();
-      visual_feature_msg_.s_msr.resize(s_msr_.size());
-      visual_feature_msg_.L_data_msr.resize(Lhat_msr_.rows()*Lhat_msr_.cols());
+      feature_data_msg_ptr->size_s_msr = s_msr_.size();
+      feature_data_msg_ptr->rowsLmsr = Lhat_msr_.rows();
+      feature_data_msg_ptr->colsLmsr = Lhat_msr_.cols();
+      feature_data_msg_ptr->s_msr.resize(s_msr_.size());
+      feature_data_msg_ptr->L_data_msr.resize(Lhat_msr_.rows()*Lhat_msr_.cols());
 
       // Set data for s message
       for(size_t i =0; i < s_msr_.size(); i++)
-        visual_feature_msg_.s_msr[i] = s_msr_[i];
+        feature_data_msg_ptr->s_msr[i] = s_msr_[i];
 
       // Set data for L message
       for(int r =0; r < Lhat_msr_.rows(); r++){
         for(int c =0; c < Lhat_msr_.cols(); c++){
-          visual_feature_msg_.L_data_msr[r*Lhat_msr_.cols() + c] = Lhat_msr_(r, c);
+          feature_data_msg_ptr->L_data_msr[r*Lhat_msr_.cols() + c] = Lhat_msr_(r, c);
         }
       }
       ROS_INFO ("The distance Z to the measured feature is %.4lf", Z_ );
@@ -411,9 +414,9 @@ void VisualFeaturesExtractor::update(const ros::Time& time, const ros::Duration&
     }
   }
 
-  visual_feature_msg_.header.stamp = ros::Time::now();
-  visual_feature_msg_.numFeatures = num_extracted_features_;
-  pub_vis_data_.publish(visual_feature_msg_);
+  feature_data_msg_ptr->header.stamp = ros::Time::now();
+  feature_data_msg_ptr->numFeatures = num_extracted_features_;
+  pub_vis_data_.publish(feature_data_msg_ptr);
 
   // update time for simulated features TF
   for (size_t i = 0; i< allTFwff_.size(); i++)

@@ -80,11 +80,8 @@ private:
   ///  Image subscriber for camera raw images
   image_transport::Subscriber sub_img_transport_;
 
-  /// Publisher for calculated features vectrors and interaction matrices
+  /// Publisher for calculated features vectors and interaction matrices
   ros::Publisher  pub_vis_data_;
-
-  /// Message for visual data publisher
-  visual_features_extractor::VisFeature visual_feature_msg_;
 
   /// Container for camera info
   sensor_msgs::CameraInfo cam_param_;

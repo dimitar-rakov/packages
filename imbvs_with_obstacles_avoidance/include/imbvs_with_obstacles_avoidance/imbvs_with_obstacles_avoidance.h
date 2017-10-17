@@ -155,13 +155,13 @@ private:
 
 
   /// Message for all data publisher
-  std_msgs::Float64MultiArray all_data_msg;
+  std_msgs::Float64MultiArray::Ptr all_data_msg_ptr_;
 
   /// Trajectory points for all joints
   trajectory_msgs::JointTrajectoryPoint traj_points_;
 
   /// Trajectory message
-  trajectory_msgs::JointTrajectory traj_msg_;
+  trajectory_msgs::JointTrajectory::Ptr traj_msg_ptr_;
 
   /// Container for robot links names
   std::vector<std::string> tf_names_;

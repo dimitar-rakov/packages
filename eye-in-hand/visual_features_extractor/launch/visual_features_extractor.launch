@@ -2,7 +2,7 @@
   <arg name="base_name"                     default="visual_fetures_extractor"/>
   <arg name="raw_images_topic"              default="/usb_cam/image_raw"/>
   <arg name="camera_name"                   default="eye_in_hand"/>
-  <arg name="using_sim_features"            default="false"/>
+  <arg name="using_sim_features"            default="true"/>
   <arg name="using_extended_features"       default="true"/>
   <arg name="using_symmetrical_features"    default="true"/>
   <arg name="extended_features_var"         default="1.2"/>

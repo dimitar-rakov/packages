@@ -38,6 +38,8 @@ bool ImbvsWithObstaclesAvoidance::init(ros::NodeHandle &n)
   restoring_initial_= false;
   num_released_features_ = 3;
 
+   traj_msg_ptr_.reset(new trajectory_msgs::JointTrajectory());
+   all_data_msg_ptr_.reset( new std_msgs::Float64MultiArray ());
 
   // Get base_name from parameter server
   if (!nh_.getParam("base_name", base_name_)){
@@ -148,7 +150,7 @@ bool ImbvsWithObstaclesAvoidance::init(ros::NodeHandle &n)
   {
     joint = model.getJoint(link->parent_joint->name);
     ROS_INFO("Getting limits for joint: %s", joint->name.c_str());
-    traj_msg_.joint_names.insert(traj_msg_.joint_names.begin(),joint->name);
+    traj_msg_ptr_->joint_names.insert(traj_msg_ptr_->joint_names.begin(),joint->name);
     tf_names_.insert(tf_names_.begin(),link->name);
 
     index = joint_number_ - i - 1;
@@ -571,8 +573,8 @@ void ImbvsWithObstaclesAvoidance::update(const ros::Time& time, const ros::Durat
     ROS_INFO("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
 
     traj_points_.time_from_start = period;
-    traj_msg_.points.clear();
-    traj_msg_.points.push_back(traj_points_);
+    traj_msg_ptr_->points.clear();
+    traj_msg_ptr_->points.push_back(traj_points_);
   }
 }
 
@@ -594,18 +596,18 @@ void ImbvsWithObstaclesAvoidance::command(const imbvs_with_obstacles_avoidance::
 }
 
 void ImbvsWithObstaclesAvoidance::publish(){
-  if (!traj_msg_.points.empty()){
+  if (!traj_msg_ptr_->points.empty()){
     if (USE_TRAJ_CLIENT){
       control_msgs::FollowJointTrajectoryGoal goal;
-      goal.trajectory = traj_msg_;
+      goal.trajectory = *traj_msg_ptr_;
       //goal.trajectory .header.stamp = ros::Time::now();
       traj_client_ptr_->sendGoal(goal);
     }
     else
-      pub_joint_traj_.publish(traj_msg_);
+      pub_joint_traj_.publish(traj_msg_ptr_);
   }
-  if (!all_data_msg.data.empty())
-    pub_all_data_.publish (all_data_msg);
+  if (!all_data_msg_ptr_->data.empty())
+    pub_all_data_.publish (all_data_msg_ptr_);
 }
 
 void ImbvsWithObstaclesAvoidance::featureExtractorCB(const imbvs_with_obstacles_avoidance::VisFeature &msg){
@@ -687,53 +689,53 @@ void ImbvsWithObstaclesAvoidance::robotObjectsCB(const visualization_msgs::Marke
 void ImbvsWithObstaclesAvoidance::recordAllData(){
 
   // All data for rosbag
-  all_data_msg.data.clear();
+  all_data_msg_ptr_->data.clear();
   //measured angles 3-9
   for (unsigned int i = 0; i < joint_number_; i++)
-    all_data_msg.data.push_back(joint_msr_states_.q(i));
+    all_data_msg_ptr_->data.push_back(joint_msr_states_.q(i));
 
   //desired angles 10-16
   for (unsigned int i = 0; i < joint_number_; i++)
-    all_data_msg.data.push_back(joint_des_states_.q(i));
+    all_data_msg_ptr_->data.push_back(joint_des_states_.q(i));
 
   //measured velocity 17-23
   for (unsigned int i = 0; i < joint_number_; i++)
-    all_data_msg.data.push_back(joint_msr_states_.qdot(i));
+    all_data_msg_ptr_->data.push_back(joint_msr_states_.qdot(i));
 
   //desired velocity 24-30
   for (unsigned int i = 0; i < joint_number_; i++)
-    all_data_msg.data.push_back(joint_des_states_.qdot(i));
+    all_data_msg_ptr_->data.push_back(joint_des_states_.qdot(i));
 
   //repulsive field velocity(simple 31-37 )
   for (unsigned int i = 0; i < joint_rep_field_.size(); i++)
-    all_data_msg.data.push_back(joint_rep_field_(i));
+    all_data_msg_ptr_->data.push_back(joint_rep_field_(i));
 
 
   // Fbe_ 38-43
   double roll, pitch, yaw;
   KDL::Frame Fwc = Fwb_ * Fbe_ * Fec_;
-  all_data_msg.data.push_back(Fwc.p.x());
-  all_data_msg.data.push_back(Fwc.p.y());
-  all_data_msg.data.push_back(Fwc.p.z());
+  all_data_msg_ptr_->data.push_back(Fwc.p.x());
+  all_data_msg_ptr_->data.push_back(Fwc.p.y());
+  all_data_msg_ptr_->data.push_back(Fwc.p.z());
   Fwc.M.GetRPY(roll, pitch, yaw);
-  all_data_msg.data.push_back(roll);
-  all_data_msg.data.push_back(pitch);
-  all_data_msg.data.push_back(yaw);
+  all_data_msg_ptr_->data.push_back(roll);
+  all_data_msg_ptr_->data.push_back(pitch);
+  all_data_msg_ptr_->data.push_back(yaw);
 
   if (msr_features_status_ ==2 && des_features_status_ ==2 && !test_only_obst_avoidance_ ){
 
     //measured features vector (simple 44-49 )
     for (unsigned int i = 0; i < s_msr_.size(); i++)
-      all_data_msg.data.push_back(s_msr_(i));
+      all_data_msg_ptr_->data.push_back(s_msr_(i));
 
     //desired features vector (simple 50-55 )
     for (unsigned int i = 0; i < s_des_.size(); i++)
-      all_data_msg.data.push_back(s_des_(i));
+      all_data_msg_ptr_->data.push_back(s_des_(i));
 
 
     //error features vector_dot (simple 56-61 )
     for (unsigned int i = 0; i < s_cmd_dot_.size(); i++)
-      all_data_msg.data.push_back(s_cmd_dot_(i));
+      all_data_msg_ptr_->data.push_back(s_cmd_dot_(i));
 
     // Calculate svd of the Jbc_ (simple 62-68 )
     JacobiSVD<MatrixXd> svd1(Jce_.data, ComputeThinU | ComputeThinV);
@@ -745,14 +747,14 @@ void ImbvsWithObstaclesAvoidance::recordAllData(){
     ROS_WARN_STREAM_COND(svd1.singularValues()(5) < 0.001,"Jce_ sigmas "<<
                          std::fixed << std::setprecision(4)<<(svd1.singularValues()).transpose().format(CleanFmt));
     for (long i = 0; i < (svd1.singularValues()).size(); i++)
-      all_data_msg.data.push_back((svd1.singularValues())(i));
+      all_data_msg_ptr_->data.push_back((svd1.singularValues())(i));
 
     // Calculate svd of the  Lhat_*Jce_ (simple 69-75 )
     JacobiSVD<MatrixXd> svd2((Lhat_*Jce_.data), ComputeFullU | ComputeFullV);
     ROS_WARN_STREAM_COND(svd2.singularValues()(5) < 0.001,"Lhat_*Jce_ sigmas: "<<
                          std::fixed << std::setprecision(4)<<(svd2.singularValues()).transpose().format(CleanFmt));
     for (long i = 0; i < (svd2.singularValues()).size(); i++)
-      all_data_msg.data.push_back((svd2.singularValues())(i));
+      all_data_msg_ptr_->data.push_back((svd2.singularValues())(i));
 
     // Calculate svd of the  Lhat_
     JacobiSVD<MatrixXd> svd3((Lhat_), ComputeFullU | ComputeFullV);
@@ -767,9 +769,9 @@ void ImbvsWithObstaclesAvoidance::jointPositionCB(const sensor_msgs::JointState 
   // joint order is ['lwr_a1_joint', 'lwr_a2_joint', 'lwr_a3_joint', 'lwr_a4_joint', 'lwr_a5_joint', 'lwr_a6_joint', 'lwr_e1_joint']
   joint_mutex_.lock();
   int cnt_founded_joints = 0;
-  for (unsigned int i = 0; i < traj_msg_.joint_names.size(); i++){
+  for (unsigned int i = 0; i < traj_msg_ptr_->joint_names.size(); i++){
     for (unsigned int j = 0; j < msg.name.size(); j++){
-      if ( traj_msg_.joint_names[i] == msg.name[j]){
+      if ( traj_msg_ptr_->joint_names[i] == msg.name[j]){
         joint_msr_states_.q(i) =  msg.position[j];
         joint_msr_states_.qdot(i) =  msg.velocity[j];
 
@@ -960,27 +962,27 @@ void ImbvsWithObstaclesAvoidance::obstaclesProcesing(double &dst_min_dist, doubl
 
   if (markers_robot_objects_.markers.size()){
     // Publish the vector which repesents the closest to robot obstacle
-    visualization_msgs::Marker marker;
+    visualization_msgs::Marker::Ptr marker(new visualization_msgs::Marker());
     geometry_msgs::Point p;
-    marker.header.frame_id = "lwr_base_link";
-    marker.header.stamp = ros::Time();
-    marker.ns = "repulsive vector";
-    marker.id = 348;
-    marker.type = visualization_msgs::Marker::ARROW;
-    marker.action = visualization_msgs::Marker::ADD;
-    marker.scale.x =  0.02;
-    marker.scale.y =  0.03;
-    marker.scale.z =  0.05;
-    marker.color.a = 0.75; // Don't forget to set the alpha!
-    marker.color.r = 0.0;
-    marker.color.g = 1.0;
-    marker.color.b = 0.0;
-    marker.lifetime = ros::Duration(1);
+    marker->header.frame_id = "lwr_base_link";
+    marker->header.stamp = ros::Time();
+    marker->ns = "repulsive vector";
+    marker->id = 348;
+    marker->type = visualization_msgs::Marker::ARROW;
+    marker->action = visualization_msgs::Marker::ADD;
+    marker->scale.x =  0.02;
+    marker->scale.y =  0.03;
+    marker->scale.z =  0.05;
+    marker->color.a = 0.75; // Don't forget to set the alpha!
+    marker->color.r = 0.0;
+    marker->color.g = 1.0;
+    marker->color.b = 0.0;
+    marker->lifetime = ros::Duration(1);
     tf::pointKDLToMsg(Pb_os_min_[min_dist_idx], p);
-    marker.points.clear();
-    marker.points.push_back(p);
+    marker->points.clear();
+    marker->points.push_back(p);
     tf::pointKDLToMsg(Pb_rs_min_[min_dist_idx], p);
-    marker.points.push_back(p);
+    marker->points.push_back(p);
     pub_rep_vec_marker_.publish(marker);
   }
 

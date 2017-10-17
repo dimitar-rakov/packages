@@ -62,6 +62,15 @@ bool ObstacleDetector::init(ros::NodeHandle &nh){
     }
   }
 
+  cb_ros_cloud_ptr_.reset(new sensor_msgs::PointCloud2());
+  filtered_ros_cloud_ptr_.reset(new sensor_msgs::PointCloud2());
+  in_cloud_ptr_.reset(new pcl::PointCloud<pcl::PointXYZ>());
+  cb_cloud_ptr_.reset(new pcl::PointCloud<pcl::PointXYZ>());
+  filtered_cloud_ptr_.reset(new pcl::PointCloud<pcl::PointXYZ>());
+  obstacles_objects_ptr_.reset(new visualization_msgs::MarkerArray ());
+  filter_env_objects_ptr_.reset(new visualization_msgs::MarkerArray ());
+  filter_robot_objects_ptr_.reset(new visualization_msgs::MarkerArray ());
+  filter_robot_objects_fixed_ptr_.reset(new visualization_msgs::MarkerArray ());
 
   XmlRpc::XmlRpcValue obj;
   std::string ns_filter_group = std::string ("filter_env_obj");
@@ -69,13 +78,13 @@ bool ObstacleDetector::init(ros::NodeHandle &nh){
   //Get all filter_env_obj from yaml
   if ( !nh_.getParam(nh_.getNamespace()+"/" + ns_filter_group, obj ) || obj.getType() != XmlRpc::XmlRpcValue::TypeStruct)
     ROS_WARN("%s is not properly set in yaml file",ns_filter_group.c_str());
-  getFilterObjectsParameters(obj, filter_env_objects_, ns_filter_group);
+  getFilterObjectsParameters(obj, filter_env_objects_ptr_, ns_filter_group);
 
   //Get all filter_robot_obj from yaml
   ns_filter_group = std::string ("filter_robot_obj");
   if ( !nh_.getParam(nh_.getNamespace()+"/" + ns_filter_group, obj ) || obj.getType() != XmlRpc::XmlRpcValue::TypeStruct)
     ROS_WARN("%s is not properly set in yaml file", ns_filter_group.c_str());
-  getFilterObjectsParameters(obj, filter_robot_objects_, ns_filter_group);
+  getFilterObjectsParameters(obj, filter_robot_objects_ptr_, ns_filter_group);
 
   //Initialization
   radius_sphere_robot_body_= 0.14;
@@ -103,12 +112,7 @@ bool ObstacleDetector::init(ros::NodeHandle &nh){
   marker.color.g = 0.0;
   marker.color.b = 0.0;
   marker.lifetime = ros::Duration(1);
-  obstacles_objects_.markers.push_back(marker);
-  cb_ros_cloud_ptr_.reset(new sensor_msgs::PointCloud2());
-  filtered_ros_cloud_ptr_.reset(new sensor_msgs::PointCloud2());
-  in_cloud_ptr_.reset(new pcl::PointCloud<pcl::PointXYZ>());
-  cb_cloud_ptr_.reset(new pcl::PointCloud<pcl::PointXYZ>());
-  filtered_cloud_ptr_.reset(new pcl::PointCloud<pcl::PointXYZ>());
+  obstacles_objects_ptr_->markers.push_back(marker);
 
 
   //Initializing of publisher and subscribers
@@ -204,23 +208,23 @@ void ObstacleDetector::update(const ros::Time& time, const ros::Duration& period
     //buildRobotBodyFromSpheres();
 
     // Build a robot filter fixed objects (fixed coordinates)
-    filter_robot_objects_fixed_.markers.clear();
-    for(size_t i = 0; i< filter_robot_objects_.markers.size(); i++){
+    filter_robot_objects_fixed_ptr_->markers.clear();
+    for(size_t i = 0; i< filter_robot_objects_ptr_->markers.size(); i++){
       int tf_idx =  -1;
       for(size_t j = 0; j< tf_names_.size(); j++){
-        if (tf_names_[j] == filter_robot_objects_.markers[i].header.frame_id){
+        if (tf_names_[j] == filter_robot_objects_ptr_->markers[i].header.frame_id){
           tf_idx = j;
           tf::Vector3 in_pos;
-          tf::pointMsgToTF(filter_robot_objects_.markers[i].pose.position, in_pos);
+          tf::pointMsgToTF(filter_robot_objects_ptr_->markers[i].pose.position, in_pos);
           tf::Vector3 out_pos = TFs_fixed_[j]* in_pos;
-          visualization_msgs::Marker marker = filter_robot_objects_.markers[i];
+          visualization_msgs::Marker marker = filter_robot_objects_ptr_->markers[i];
           marker.header.frame_id = fixed_frame_;
           marker.pose.position.x = out_pos.x();
           marker.pose.position.y = out_pos.y();
           marker.pose.position.z = out_pos.z();
           marker.id += 1000;
           marker.header.stamp = ros::Time();
-          filter_robot_objects_fixed_.markers.push_back(marker);
+          filter_robot_objects_fixed_ptr_->markers.push_back(marker);
         }
       }
 
@@ -235,18 +239,18 @@ void ObstacleDetector::update(const ros::Time& time, const ros::Duration& period
 
     // Proceeds enviroment filter objects
     tic = ros::Time::now();
-    for (size_t i=0 ; i < filter_env_objects_.markers.size(); i++){
-      if (filter_env_objects_.markers[i].type == visualization_msgs::Marker::CUBE){
+    for (size_t i=0 ; i < filter_env_objects_ptr_->markers.size(); i++){
+      if (filter_env_objects_ptr_->markers[i].type == visualization_msgs::Marker::CUBE){
         if (i==0 &&  in_cloud_ptr_->points.size()>0)
-          filterBoxOut(filter_env_objects_.markers[i], in_cloud_ptr_, filtered_cloud_ptr_);
+          filterBoxOut(filter_env_objects_ptr_->markers[i], in_cloud_ptr_, filtered_cloud_ptr_);
         else if (i>0 && filtered_cloud_ptr_->points.size()>0)
-          filterBoxOut(filter_env_objects_.markers[i], filtered_cloud_ptr_, filtered_cloud_ptr_);
+          filterBoxOut(filter_env_objects_ptr_->markers[i], filtered_cloud_ptr_, filtered_cloud_ptr_);
       }
-      else if (filter_env_objects_.markers[i].type == visualization_msgs::Marker::SPHERE){
+      else if (filter_env_objects_ptr_->markers[i].type == visualization_msgs::Marker::SPHERE){
         if (i==0 &&  in_cloud_ptr_->points.size()>0)
-          filterSphereOut(filter_env_objects_.markers[i], in_cloud_ptr_, filtered_cloud_ptr_);
+          filterSphereOut(filter_env_objects_ptr_->markers[i], in_cloud_ptr_, filtered_cloud_ptr_);
         else if (i>0 && filtered_cloud_ptr_->points.size()>0)
-          filterSphereOut(filter_env_objects_.markers[i], filtered_cloud_ptr_, filtered_cloud_ptr_);
+          filterSphereOut(filter_env_objects_ptr_->markers[i], filtered_cloud_ptr_, filtered_cloud_ptr_);
       }
     }
     ROS_WARN("Processing 1 takes %lf Size of out pointcloud %ld" ,(ros::Time::now() -tic).toSec(), filtered_cloud_ptr_->points.size());
@@ -254,20 +258,20 @@ void ObstacleDetector::update(const ros::Time& time, const ros::Duration& period
 
     // Proceeds robot filter objects
     tic = ros::Time::now();
-    for (size_t i = 0 ; i < filter_robot_objects_fixed_.markers.size(); i++){
+    for (size_t i = 0 ; i < filter_robot_objects_fixed_ptr_->markers.size(); i++){
 
-      if (filter_robot_objects_fixed_.markers[i].type == visualization_msgs::Marker::CUBE){
-        if (filter_env_objects_.markers.size()==0)
-          filterBoxOut(filter_robot_objects_fixed_.markers[i], in_cloud_ptr_, filtered_cloud_ptr_);
+      if (filter_robot_objects_fixed_ptr_->markers[i].type == visualization_msgs::Marker::CUBE){
+        if (filter_env_objects_ptr_->markers.size()==0)
+          filterBoxOut(filter_robot_objects_fixed_ptr_->markers[i], in_cloud_ptr_, filtered_cloud_ptr_);
         else
-          filterBoxOut(filter_robot_objects_fixed_.markers[i], filtered_cloud_ptr_, filtered_cloud_ptr_);
+          filterBoxOut(filter_robot_objects_fixed_ptr_->markers[i], filtered_cloud_ptr_, filtered_cloud_ptr_);
       }
 
-      else if (filter_robot_objects_fixed_.markers[i].type == visualization_msgs::Marker::SPHERE){
-        if (filter_env_objects_.markers.size()==0)
-          filterSphereOut(filter_robot_objects_fixed_.markers[i], in_cloud_ptr_,filtered_cloud_ptr_);
+      else if (filter_robot_objects_fixed_ptr_->markers[i].type == visualization_msgs::Marker::SPHERE){
+        if (filter_env_objects_ptr_->markers.size()==0)
+          filterSphereOut(filter_robot_objects_fixed_ptr_->markers[i], in_cloud_ptr_,filtered_cloud_ptr_);
         else
-          filterSphereOut(filter_robot_objects_fixed_.markers[i], filtered_cloud_ptr_,filtered_cloud_ptr_);
+          filterSphereOut(filter_robot_objects_fixed_ptr_->markers[i], filtered_cloud_ptr_,filtered_cloud_ptr_);
       }
     }
     ROS_WARN("Processing 2 takes %lf Size of out pointcloud %ld" ,(ros::Time::now() -tic).toSec(), filtered_cloud_ptr_->points.size());
@@ -289,18 +293,18 @@ void ObstacleDetector::update(const ros::Time& time, const ros::Duration& period
 
 
 void ObstacleDetector::publish(){
-  if (!filter_env_objects_.markers.empty())
-    pub_markers_filter_env_objects_.publish(filter_env_objects_);
-  if (!filter_robot_objects_.markers.empty())
-    pub_markers_filter_robot_objects_.publish(filter_robot_objects_);
-  if (!filter_robot_objects_fixed_.markers.empty())
-    pub_markers_filter_robot_objects_fixed_.publish(filter_robot_objects_fixed_);
-  if (!obstacles_objects_.markers.empty()){
-    pub_markers_obstacles_objects_.publish(obstacles_objects_);
+  if (!filter_env_objects_ptr_->markers.empty())
+    pub_markers_filter_env_objects_.publish(filter_env_objects_ptr_);
+  if (!filter_robot_objects_ptr_->markers.empty())
+    pub_markers_filter_robot_objects_.publish(filter_robot_objects_ptr_);
+  if (!filter_robot_objects_fixed_ptr_->markers.empty())
+    pub_markers_filter_robot_objects_fixed_.publish(filter_robot_objects_fixed_ptr_);
+  if (!obstacles_objects_ptr_->markers.empty()){
+    pub_markers_obstacles_objects_.publish(obstacles_objects_ptr_);
   }
   if (!filtered_ros_cloud_ptr_->data.empty()){
     filtered_ros_cloud_ptr_->header.stamp = ros::Time::now();
-    pub_output_cloud_.publish(*filtered_ros_cloud_ptr_);
+    pub_output_cloud_.publish(filtered_ros_cloud_ptr_);
   }
 }
 
@@ -334,7 +338,7 @@ void ObstacleDetector::buildRobotBodyFromSpheres(){
   //Equation of line (x,y,z)=(x0,y0,z0)+t(a,b,c), where t(a,b,c) end point (t=1), used for direction
   tf::Vector3 parent(0, 0 ,0), child(0, 0 ,0), result(0, 0 ,0),result_fixed(0, 0 ,0);
   double distance;
-  filter_robot_objects_.markers.clear();
+  filter_robot_objects_ptr_->markers.clear();
   visualization_msgs::Marker marker;
   marker.id = 100;
   marker.ns = "robot_collision_body";
@@ -365,7 +369,7 @@ void ObstacleDetector::buildRobotBodyFromSpheres(){
       marker.pose.position.z = result.z();
       marker.id += 1;
       marker.header.stamp = ros::Time();
-      filter_robot_objects_.markers.push_back(marker);
+      filter_robot_objects_ptr_->markers.push_back(marker);
 
       if((distance - curr_t ) < 1.25*radius_sphere_robot_body_) // 1.25 to have nice overlapping
         break;
@@ -376,7 +380,7 @@ void ObstacleDetector::buildRobotBodyFromSpheres(){
 }
 
 void ObstacleDetector::getFilterObjectsParameters(XmlRpc::XmlRpcValue &obj,
-                                                  visualization_msgs::MarkerArray &filter_objects,
+                                                  visualization_msgs::MarkerArray::Ptr &filter_objects,
                                                   const std::string &ns )
 {
 
@@ -445,7 +449,7 @@ void ObstacleDetector::getFilterObjectsParameters(XmlRpc::XmlRpcValue &obj,
             marker.scale.y = static_cast<double> (scale[std::string("y")]);
             marker.scale.z = static_cast<double> (scale[std::string("z")]);
             marker.lifetime = ros::Duration(1);
-            filter_objects.markers.push_back(marker);
+            filter_objects->markers.push_back(marker);
           }
         }
       }
@@ -541,9 +545,9 @@ void ObstacleDetector::simMovingObstacle(const ros::Duration &period){
 
   if (obst_curr_distance_ <distance){
     tf::Vector3 v= obst_start_position_ + (obst_curr_distance_/distance) * (obst_end_position_-obst_start_position_);
-    obstacles_objects_.markers[0].pose.position.x = v.x();
-    obstacles_objects_.markers[0].pose.position.y = v.y();
-    obstacles_objects_.markers[0].pose.position.z = v.z();
+    obstacles_objects_ptr_->markers[0].pose.position.x = v.x();
+    obstacles_objects_ptr_->markers[0].pose.position.y = v.y();
+    obstacles_objects_ptr_->markers[0].pose.position.z = v.z();
     obst_curr_distance_+= t;
   }
   else
@@ -630,7 +634,7 @@ void ObstacleDetector:: detectObstaclesAsBox(){
     marker.color.b = 0.0;
     marker.text = std::string("KEEP");
     marker.lifetime = ros::Duration(0.5);
-    obstacles_objects_.markers.push_back(marker);
+    obstacles_objects_ptr_->markers.push_back(marker);
 
   }
 }
@@ -665,9 +669,9 @@ void ObstacleDetector::detectOctreeVoxels(){
 //    }
 
     tic = ros::Time::now();
-    visualization_msgs::Marker marker =  obstacles_objects_.markers[0];
-    obstacles_objects_.markers.clear();
-    obstacles_objects_.markers.push_back(marker);
+    visualization_msgs::Marker marker =  obstacles_objects_ptr_->markers[0];
+    obstacles_objects_ptr_->markers.clear();
+    obstacles_objects_ptr_->markers.push_back(marker);
     marker.color.a = 0.5;
     marker.color.r = 1.0;
     marker.color.g = 1.0;
@@ -692,10 +696,10 @@ void ObstacleDetector::detectOctreeVoxels(){
         marker.pose.position.x= point_grid[i].x;
         marker.pose.position.y= point_grid[i].y;
         marker.pose.position.z= point_grid[i].z;
-        obstacles_objects_.markers.push_back(marker);
+        obstacles_objects_ptr_->markers.push_back(marker);
       }
     }
-    ROS_WARN("Processing 3.3 (inliers() takes %lf Size of out point_grid %ld" ,(ros::Time::now() -tic).toSec(), obstacles_objects_.markers.size());
+    ROS_WARN("Processing 3.3 (inliers() takes %lf Size of out point_grid %ld" ,(ros::Time::now() -tic).toSec(), obstacles_objects_ptr_->markers.size());
   }
 
 }

@@ -366,8 +366,8 @@ void KinectFusion::pointcloudsFusion(std::vector<sensor_msgs::PointCloud2::Ptr> 
   fused_cloud_ptr_->header.stamp = ros::Time::now();
   transf_clouds_ptr_[0]->header.stamp = ros::Time::now();
   transf_clouds_ptr_[1]->header.stamp = ros::Time::now();
-  pub_fussed_points.publish(*fused_cloud_ptr_);
-  pub_transformed_points1.publish(*transf_clouds_ptr_[0]);
-  pub_transformed_points2.publish(*transf_clouds_ptr_[1]);
+  pub_fussed_points.publish(fused_cloud_ptr_);
+  pub_transformed_points1.publish(transf_clouds_ptr_[0]);
+  pub_transformed_points2.publish(transf_clouds_ptr_[1]);
   ROS_INFO("clouds Fusion takes %lf Pointcloud height %d and width %d" , (ros::Time::now() -tic_all).toSec(), fused_cloud_ptr_->height, fused_cloud_ptr_->width);
 }
