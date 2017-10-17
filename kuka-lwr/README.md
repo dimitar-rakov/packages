@@ -7,8 +7,10 @@ The main packages are:
 - [__lwr_hw__](lwr_hw): a package that contains the LWR 4 definition within the ros control framework, and also final interfaces using Kuka FRI, Stanford FRI Library or a Gazebo plugin. Read adding an interface below if you wish to add a different non-existing interface. 
 - [__lwr_controllers__](lwr_controllers): a package that implement a set of useful controllers (ToDo: perhaps moving this to a forked version of `ros_controllers` would be ok, but some controllers are specific for the a 7-dof arm).
 - [__ics_lwr__](ics_lwr): a cofiguration-based meta-package that  use the `kuka_lwr` packages.
-	- [__ics_lwr_setup__](single_lwr_example/single_lwr_robot): the package where you define your robot using the LWR 4 arm.
+  - [__ics_lwr_setup__](ics_lwr_/ics_lwr_setup): the package where you define ICS robot setup using the LWR 4 arm.
 	- [__ics_lwr_launch__](ics_lwr_/ics_lwr_launch): a launch interface to load different components and configuration of your setup be it real, simulation, moveit, visualization, etc.
+  - [__hri_lwr_setup__](hri_lwr_/ics_lwr_setup): the package where you define HRI robot setup using the LWR 4 arm.
+  - [__hri_lwr_launch__](hri_lwr_/ics_lwr_launch): a launch interface to load different components and configuration of your setup be it real, simulation, moveit, visualization, etc.
 
 
 
