@@ -49,7 +49,7 @@ public:
 
   /**
    * @brief init Initilializing of VisualFeaturesExtractor. It has to be called only once before update().
-   * @param nh node handle
+   * @param nh Node handle
    * @return true if everithing pass normaly, false otherwise
    */
   bool init(ros::NodeHandle &nh);
@@ -252,7 +252,8 @@ private:
    * @param res
    * @return
    */
-  bool setTfSimFeatureWrtWorld (visual_features_extractor::SetTF::Request &req, visual_features_extractor::SetTF::Response &res);
+  bool setTfSimFeatureWrtWorld (visual_features_extractor::SetTF::Request &req,
+                                visual_features_extractor::SetTF::Response &res);
 
   /**
    * @brief setTfDesFeatureWrtCamera Service callback for setting a transform of the desired features wrt to camera
@@ -260,7 +261,8 @@ private:
    * @param res
    * @return
    */
-  bool setTfDesFeatureWrtCamera(visual_features_extractor::SetTF::Request &req, visual_features_extractor::SetTF::Response &res);
+  bool setTfDesFeatureWrtCamera(visual_features_extractor::SetTF::Request &req,
+                                visual_features_extractor::SetTF::Response &res);
 
   /**
    * @brief setDesiredTemplate Service callback for setting a desired templates
@@ -268,7 +270,8 @@ private:
    * @param res
    * @return
    */
-  bool setDesiredTemplate(visual_features_extractor::SetDepth::Request &req, visual_features_extractor::SetDepth::Response &res);
+  bool setDesiredTemplate(visual_features_extractor::SetDepth::Request &req,
+                          visual_features_extractor::SetDepth::Response &res);
 
 
   /**
@@ -281,46 +284,56 @@ private:
    * @brief getCameraParameter Get camera parameter from parameter server
    * @param nh Input node handle
    * @param camera_name  Input camera name
-   * @param Output dst_camera_param Destination container for camera parameters
+   * @param dst_camera_param Output destination container for camera parameters
    * @return
    */
-  bool getCameraParameter(const ros::NodeHandle &nh, const std::string &camera_name, sensor_msgs::CameraInfo &dst_camera_param);
+  bool getCameraParameter(const ros::NodeHandle &nh,
+                          const std::string &camera_name,
+                          sensor_msgs::CameraInfo &dst_camera_param);
 
   /**
    * @brief findBlobsContours   Find contours of coloured blobs
-   * @param srs_image Source image used for contour extraction
-   * @param dst_contours Destination container for found contours
-   * @param dst_found_features_names Destination container for found features names
+   * @param srs_image Input source image used for contour extraction
+   * @param dst_contours Output destination container for found contours
+   * @param dst_found_features_names Output destination container for found features names
    */
-  void findBlobsContours(const cv::Mat &srs_image,std::vector<std::vector<cv::Point> >  &dst_contours, std::vector<std::string> &dst_found_features_names);
+  void findBlobsContours(const cv::Mat &srs_image,
+                         std::vector<std::vector<cv::Point> >  &dst_contours,
+                         std::vector<std::string> &dst_found_features_names);
 
   /**
    * @brief findArucoMarkers Find aruco markers
-   * @param srs_image Source image used for aruco extraction
-   * @param dst_markers Destination container for found markers
-   * @param founded_features_names Destination container for found features names
+   * @param srs_image Input image used for aruco extraction
+   * @param dst_markers Output destination container for found markers
+   * @param founded_features_names Output destination container for found features names
    */
-  void findArucoMarkers(const cv::Mat &srs_image, std::vector<aruco::Marker>  &dst_markers, std::vector<std::string> &founded_features_names);
+  void findArucoMarkers(const cv::Mat &srs_image,
+                        std::vector<aruco::Marker>  &dst_markers,
+                        std::vector<std::string> &founded_features_names);
 
   /**
    * @brief showAll Visualisation of found contours or aruco markers
-   * @param srs_image Source image used for visualization
-   * @param src_contours  Source countours
-   * @param srs_markers Source aruco markers
-   * @param src_coord Source features coordinates
-   * @param founded_features_names
+   * @param srs_image Input image used for visualization
+   * @param src_contours Input countours
+   * @param srs_markers Input aruco markers
+   * @param src_coord Input features coordinates
+   * @param founded_features_names Output destination container for found features names
    */
-  void showAll(const cv::Mat &srs_image, const std::vector<std::vector<cv::Point> > &src_contours, const std::vector<aruco::Marker>  &srs_markers,
-               const std::vector<cv::Point2d> &src_coord, const std::vector<std::string> &founded_features_names);
+  void showAll(const cv::Mat &srs_image, const std::vector<std::vector<cv::Point> > &src_contours,
+               const std::vector<aruco::Marker>  &srs_markers,
+               const std::vector<cv::Point2d> &src_coord,
+               const std::vector<std::string> &founded_features_names);
 
 
   /**
    * @brief getBestNContours Order the countours by size and take the largest
-   * @param srs_contours
-   * @param contour_area_treshold
+   * @param srs_contours  Input countours
+   * @param contour_area_treshold Input minimum area threshold
    * @return
    */
-  std::vector<std::vector<cv::Point> > getBestNContours(const std::vector<std::vector<cv::Point> > &srs_contours, int contour_area_treshold);
+  std::vector<std::vector<cv::Point> > getBestNContours(
+      const std::vector<std::vector<cv::Point> > &srs_contours,
+      int contour_area_treshold);
 
   /**
    * @brief calcFeaturesParameters Calculate image moments for given number of features and build matrices s, L,
@@ -332,17 +345,19 @@ private:
   /**
    * @brief imageCB Callback function to images raw topic
    * @param msg Incoming message
-   * @param dst_image_ptr Destination  to image pointer
-   * @param safety_ton Destination safety timer
-   * @param image_status Destination image status
+   * @param dst_image_ptr Output destination  to image pointer
+   * @param safety_ton Output destination safety timer
+   * @param image_status Output destination image status
    */
-  void imageCB(const sensor_msgs::ImageConstPtr& msg, cv_bridge::CvImagePtr *dst_image_ptr, ros::Time *safety_ton, int *image_status);
+  void imageCB(const sensor_msgs::ImageConstPtr& msg,
+               cv_bridge::CvImagePtr *dst_image_ptr,
+               ros::Time *safety_ton, int *image_status);
 
   /**
    * @brief calcSpatialMoment Calculate a central moment m_ij
    * @param coord Input features coordinates
-   * @param i i-th order of the moment
-   * @param j j-th order of the moment
+   * @param i Input i-th order of the moment
+   * @param j Input j-th order of the moment
    * @return
    */
   double calcSpatialMoment(const std::vector<cv::Point2d> &coord, const int &i, const int &j);
@@ -351,78 +366,88 @@ private:
   /**
    * @brief calcCentralMoment Calculate a spatial moment mu_ij
    * @param coord Input features coordinates
-   * @param i i-th order of the moment
-   * @param j j-th order of the moment
+   * @param i Input i-th order of the moment
+   * @param j Input j-th order of the moment
    * @return
    */
   double calcCentralMoment(const std::vector<cv::Point2d> &coord , const int &i, const int &j);
 
 
   /**
-   * @brief calcSimple Calculation of classical feature vector and interaction matrix based on features' image coordinates
+   * @brief calcSimple Calculation of classical feature vector and
+   * interaction matrix based on features' image coordinates
    * @param s Output destination to features vector
    * @param L Output destination to interaction matrix
    */
   void calcSimple(Eigen::VectorXd &s, Eigen::MatrixXd &L);
 
   /**
-   * @brief calcExtendedAsymmetricalV1_0 Calculation of extended feature vector and interaction matrix based on variant 1.0 features' moments for the case with asymmetrical features
+   * @brief calcExtendedAsymmetricalV1_0 Calculation of extended feature vector and
+   * interaction matrix based on variant 1.0 features' moments for the case with asymmetrical features
    * @param s Output destination to features vector
    * @param L_asym Output destination to interaction matrix
    */
   void calcExtendedAsymmetricalV1_0(Eigen::VectorXd &s, Eigen::MatrixXd &L_asym);
 
   /**
-   * @brief calcExtendedSymmetricalV1_0 Calculation of extended feature vector and interaction matrix based on variant 1.0 features' moments for the case with symmetrical features
+   * @brief calcExtendedSymmetricalV1_0 Calculation of extended feature vector and
+   * interaction matrix based on variant 1.0 features' moments for the case with symmetrical features
    * @param s Output destination to features vector
    * @param L_sym Output destination to interaction matrix
    */
   void calcExtendedSymmetricalV1_0(Eigen::VectorXd &s, Eigen::MatrixXd &L_sym);
 
   /**
-   * @brief calcExtendedAsymmetricalV1_1 Calculation of extended feature vector and interaction matrix based on variant 1.1 features' moments for the case with asymmetrical features
+   * @brief calcExtendedAsymmetricalV1_1 Calculation of extended feature vector and
+   * interaction matrix based on variant 1.1 features' moments for the case with asymmetrical features
    * @param s Output destination to features vector
    * @param L_asym Output destination to interaction matrix
    */
   void calcExtendedAsymmetricalV1_1(Eigen::VectorXd &s, Eigen::MatrixXd &L_asym);
 
   /**
-   * @brief calcExtendedSymmetricalV1_1 Calculation of extended feature vector and interaction matrix based on variant 1.1 features' moments for the case with symmetrical features
+   * @brief calcExtendedSymmetricalV1_1 Calculation of extended feature vector and
+   * interaction matrix based on variant 1.1 features' moments for the case with symmetrical features
    * @param s Output destination to features vector
    * @param L_sym Output destination to interaction matrix
    */
   void calcExtendedSymmetricalV1_1(Eigen::VectorXd &s, Eigen::MatrixXd &L_sym);
 
   /**
-   * @brief calcExtendedAsymmetricalV1_2 Calculation of extended feature vector and interaction matrix  based on variant 1.2 features' moments for the case with asymmetrical features
+   * @brief calcExtendedAsymmetricalV1_2 Calculation of extended feature vector and
+   * interaction matrix  based on variant 1.2 features' moments for the case with asymmetrical features
    * @param s Output destination to features vector
    * @param L_asym Output destination to interaction matrix
    */
   void calcExtendedAsymmetricalV1_2(Eigen::VectorXd &s, Eigen::MatrixXd &L_asym);
 
   /**
-   * @brief calcExtendedSymmetricalV1_2 Calculation of extended feature vector and interaction matrix based on variant 1.2 features' moments for the case with symmetrical features
+   * @brief calcExtendedSymmetricalV1_2 Calculation of extended feature vector and
+   * interaction matrix based on variant 1.2 features' moments for the case with symmetrical features
    * @param s Output destination to features vector
    * @param L_sym  Output destination to interaction matrix
    */
   void calcExtendedSymmetricalV1_2(Eigen::VectorXd &s, Eigen::MatrixXd &L_sym);
 
   /**
-   * @brief calcExtendedAsymmetricalV1_3 Calculation of extended feature vector and interaction matrix based on variant 1.3 features' moments for the case with asymmetrical features
+   * @brief calcExtendedAsymmetricalV1_3 Calculation of extended feature vector and
+   * interaction matrix based on variant 1.3 features' moments for the case with asymmetrical features
    * @param s Output destination to features vector
    * @param L_asym Output destination to interaction matrix
    */
   void calcExtendedAsymmetricalV1_3(Eigen::VectorXd &s, Eigen::MatrixXd &L_asym);
 
   /**
-   * @brief calcExtendedSymmetricalV1_3 Calculation of extended feature vector and interaction matrix based on variant 1.3 features' moments for the case with symmetrical features
+   * @brief calcExtendedSymmetricalV1_3 Calculation of extended feature vector and
+   * interaction matrix based on variant 1.3 features' moments for the case with symmetrical features
    * @param s Output destination to features vector
    * @param L_sym Output destination to interaction matrix
    */
   void calcExtendedSymmetricalV1_3(Eigen::VectorXd &s, Eigen::MatrixXd &L_sym);
 
   /**
-   * @brief simVisualFeaturesTFs Calculate all simulated features transforms wrt to world (Euclidean coordinates)
+   * @brief simVisualFeaturesTFs Calculate all simulated features
+   * transforms wrt to world (Euclidean coordinates)
    */
   void simVisualFeaturesTFs();
 
