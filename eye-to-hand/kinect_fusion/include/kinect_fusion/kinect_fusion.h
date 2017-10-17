@@ -194,7 +194,8 @@ private:
    * @param marker_size Input aruco marker size
    * @param windows_name Input window name for imshow()
    */
-  void markerDetect(const cv:: Mat& srs_image, const sensor_msgs::CameraInfoPtr &cam_info_ptr, tf::Transform &dstTF, int marker_id, double marker_size, std::string windows_name );
+  void markerDetect(const cv:: Mat& srs_image, const sensor_msgs::CameraInfoPtr &cam_info_ptr,
+                    tf::Transform &dstTF, int marker_id, double marker_size, std::string windows_name );
 
   /**
    * @brief imageCB Callback function to images raw topic
@@ -203,7 +204,8 @@ private:
    * @param safety_ton Output destination  safety timer
    * @param image_status Output destination  image status
    */
-  void imageCB(const sensor_msgs::ImageConstPtr& msg, cv_bridge::CvImagePtr *dst_image_ptr, ros::Time *safety_ton, int *image_status);
+  void imageCB(const sensor_msgs::ImageConstPtr& msg, cv_bridge::CvImagePtr *dst_image_ptr,
+               ros::Time *safety_ton, int *image_status);
 
   /**
    * @brief cameraInfoCB Callback function to camera info
@@ -212,7 +214,9 @@ private:
    * @param dst_safety_ton Output destination safety timer
    * @param dst_status Output destination safety timer
    */
-  void cameraInfoCB(const sensor_msgs::CameraInfoConstPtr& msg, sensor_msgs::CameraInfoPtr* dst_cam_info_ptr, ros::Time *dst_safety_ton, int *dst_status);
+  void cameraInfoCB(const sensor_msgs::CameraInfoConstPtr& msg,
+                    sensor_msgs::CameraInfoPtr* dst_cam_info_ptr,
+                    ros::Time *dst_safety_ton, int *dst_status);
 
   /**
    * @brief syncPointcloudsCB Synchronized callback function to all point raw topic

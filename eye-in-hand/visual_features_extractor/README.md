@@ -4,25 +4,26 @@ ROS/indigo package for visual features extraction
 
 ## Overview
 
-This package contains the implementation of 2 different features extraction method. First one is based on coloured blobs. The second one is based on aruco markers
+This package contains the implementation of 2 different features extraction method. First one is based on coloured blobs. The second one is based on aruco markers. The extracted features are used for building features vectors and interaction matrices used for IMBVS algorithm.
 
 
-## Dependancies
-The package depends of aruco marker library. For intalation of the aruco library can be used following tutorial: [original link](http://miloq.blogspot.de/2012/12/install-aruco-ubuntu-linux.html)
+## Dependencies
+The package depends on aruco marker library. For intalation of the aruco library can be used following tutorial: [original link](http://miloq.blogspot.de/2012/12/install-aruco-ubuntu-linux.html)
 
 ## Usage
 
-The node from this package can be run with the aid of the launch files from the _launch_ directory. 
-The following example lstart a visual_extraction_node:  
-```roslaunch visual_features_extractor visual_features_extractor.launch```  
+The node from this package can be run with the aid of the launch files from the _launch_ directory. Coresponding parameters in the launch file can be adjusted before the start (see Parameters list bellow)
+The following example start a visual_extraction_node:
+```roslaunch visual_features_extractor visual_features_extractor.launch```
 
+Ofline documentation of the API based on doxygen can be generated whit rosdoc_lite. For generation start```rosdoc_lite .``` whitin the package directory. The generated documentation can be found in created doc/html/index.html
 
 ## Parameters
 
 The package consists of multiple parameters, which can be modifyed from launch file. Here is given the list of them:
 ```
   Node base name                                    base_name                     default="visual_fetures_extractor"/>
-  Used image topic                                  raw_images_topic              default="/usb_cam/image_raw"/>
+  Used topic for raw image                          raw_images_topic              default="/usb_cam/image_raw"/>
   Camera name                                       camera_name                   default="eye_in_hand"/>
   Enable simulated features                         using_sim_features            default="false"/>
   Enable image moment based features                using_extended_features       default="true"/>

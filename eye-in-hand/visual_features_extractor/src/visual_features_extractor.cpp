@@ -446,7 +446,8 @@ bool VisualFeaturesExtractor::setTfDesFeatureWrtCamera(
   return true;
 }
 
-bool VisualFeaturesExtractor:: setDesiredTemplate(visual_features_extractor::SetDepth::Request &req, visual_features_extractor::SetDepth::Response &res)
+bool VisualFeaturesExtractor:: setDesiredTemplate(visual_features_extractor::SetDepth::Request &req,
+                                                  visual_features_extractor::SetDepth::Response &res)
 {
 
   tf::Transform TFcdf;
@@ -518,7 +519,8 @@ bool VisualFeaturesExtractor:: setDesiredTemplate(visual_features_extractor::Set
   return true;
 }
 
-bool VisualFeaturesExtractor::getTFs( ){
+bool VisualFeaturesExtractor::getTFs( )
+{
   tf::StampedTransform transform;
   try{
     lr_.lookupTransform("lwr_a6_link", "eye_in_hand", ros::Time(0), transform);
@@ -634,8 +636,9 @@ void VisualFeaturesExtractor::imageCB(
   }
 }
 
-void VisualFeaturesExtractor::findBlobsContours(const cv::Mat &srs_image, std::vector<std::vector<cv::Point> >  &dst_contours,
-    std::vector<std::string> &dst_found_features_names)
+void VisualFeaturesExtractor::findBlobsContours(const cv::Mat &srs_image,
+                                                std::vector<std::vector<cv::Point> >  &dst_contours,
+                                                std::vector<std::string> &dst_found_features_names)
 {
 
   std::vector<cv::Vec4i> hierarchy;
@@ -701,9 +704,11 @@ void VisualFeaturesExtractor::findArucoMarkers(
   }
 }
 
-void VisualFeaturesExtractor::showAll(const cv::Mat &srs_image, const std::vector<std::vector<cv::Point> > &src_contours,
-    const std::vector<aruco::Marker> &srs_markers, const std::vector<cv::Point2d> &src_coord,
-    const std::vector<std::string> &founded_features_names)
+void VisualFeaturesExtractor::showAll(const cv::Mat &srs_image,
+                                      const std::vector<std::vector<cv::Point> > &src_contours,
+                                      const std::vector<aruco::Marker> &srs_markers,
+                                      const std::vector<cv::Point2d> &src_coord,
+                                      const std::vector<std::string> &founded_features_names)
 {
 
   srs_image.copyTo(drawing_image_);
@@ -778,7 +783,8 @@ std::vector<std::vector<cv::Point> >VisualFeaturesExtractor::getBestNContours(
   return bestContours;
 }
 
-bool VisualFeaturesExtractor::calcFeaturesParameters(const std::vector<cv::Point2d> &in_features_coord){
+bool VisualFeaturesExtractor::calcFeaturesParameters(const std::vector<cv::Point2d> &in_features_coord)
+{
 
   std::vector<cv::Point2d> norm_pixel_coord(in_features_coord);
 
@@ -861,7 +867,8 @@ bool VisualFeaturesExtractor::calcFeaturesParameters(const std::vector<cv::Point
     return false;
 }
 
-double VisualFeaturesExtractor::calcSpatialMoment(const std::vector<cv::Point2d> &coord, const int &i, const int &j){
+double VisualFeaturesExtractor::calcSpatialMoment(const std::vector<cv::Point2d> &coord, const int &i, const int &j)
+{
   double m_ij = 0.0;
   for(int k=0; k<coord.size(); k++){
     m_ij+= std::pow(coord[k].x, i) * std::pow(coord[k].y, j);
@@ -870,7 +877,8 @@ double VisualFeaturesExtractor::calcSpatialMoment(const std::vector<cv::Point2d>
 
 }
 
-double VisualFeaturesExtractor::calcCentralMoment(const std::vector<cv::Point2d> &coord , const int &i, const int &j){
+double VisualFeaturesExtractor::calcCentralMoment(const std::vector<cv::Point2d> &coord , const int &i, const int &j)
+{
   double m00 = calcSpatialMoment(coord, 0,0);
   double m10 = calcSpatialMoment(coord, 1,0);
   double m01 = calcSpatialMoment(coord, 0,1);
@@ -884,7 +892,8 @@ double VisualFeaturesExtractor::calcCentralMoment(const std::vector<cv::Point2d>
 
 }
 
-void VisualFeaturesExtractor::calcSimple(Eigen::VectorXd &s, Eigen::MatrixXd &L){
+void VisualFeaturesExtractor::calcSimple(Eigen::VectorXd &s, Eigen::MatrixXd &L)
+{
 
   s.resize(2*num_extracted_features_);
   L.resize(2*num_extracted_features_, 6);
@@ -896,7 +905,8 @@ void VisualFeaturesExtractor::calcSimple(Eigen::VectorXd &s, Eigen::MatrixXd &L)
   }
 }
 
-void VisualFeaturesExtractor::calcExtendedAsymmetricalV1_0(Eigen::VectorXd &s, Eigen::MatrixXd &L_asym){
+void VisualFeaturesExtractor::calcExtendedAsymmetricalV1_0(Eigen::VectorXd &s, Eigen::MatrixXd &L_asym)
+{
 
   xg_ =  m10_/m00_;
   yg_ =  m01_/m00_;
@@ -943,7 +953,8 @@ void VisualFeaturesExtractor::calcExtendedAsymmetricalV1_0(Eigen::VectorXd &s, E
 
 }
 
-void VisualFeaturesExtractor::calcExtendedSymmetricalV1_0(Eigen::VectorXd &s, Eigen::MatrixXd &L_sym){
+void VisualFeaturesExtractor::calcExtendedSymmetricalV1_0(Eigen::VectorXd &s, Eigen::MatrixXd &L_sym)
+{
 
   xg_ =  m10_/m00_;
   yg_ =  m01_/m00_;
@@ -992,7 +1003,8 @@ void VisualFeaturesExtractor::calcExtendedSymmetricalV1_0(Eigen::VectorXd &s, Ei
 
 }
 
-void VisualFeaturesExtractor::calcExtendedAsymmetricalV1_1(Eigen::VectorXd &s, Eigen::MatrixXd &L_asym){
+void VisualFeaturesExtractor::calcExtendedAsymmetricalV1_1(Eigen::VectorXd &s, Eigen::MatrixXd &L_asym)
+{
 
   xg_ =  m10_/m00_;
   yg_ =  m01_/m00_;
@@ -1039,7 +1051,8 @@ void VisualFeaturesExtractor::calcExtendedAsymmetricalV1_1(Eigen::VectorXd &s, E
   L_asym(5, 5) = -1.0;
 }
 
-void VisualFeaturesExtractor::calcExtendedSymmetricalV1_1(Eigen::VectorXd &s, Eigen::MatrixXd &L_sym){
+void VisualFeaturesExtractor::calcExtendedSymmetricalV1_1(Eigen::VectorXd &s, Eigen::MatrixXd &L_sym)
+{
   xg_ =  m10_/m00_;
   yg_ =  m01_/m00_;
   a_ = mu20_ + mu02_;
@@ -1087,7 +1100,8 @@ void VisualFeaturesExtractor::calcExtendedSymmetricalV1_1(Eigen::VectorXd &s, Ei
 
 }
 
-void VisualFeaturesExtractor::calcExtendedAsymmetricalV1_2(Eigen::VectorXd &s, Eigen::MatrixXd &L_asym){
+void VisualFeaturesExtractor::calcExtendedAsymmetricalV1_2(Eigen::VectorXd &s, Eigen::MatrixXd &L_asym)
+{
   xg_ =  m10_/m00_;
   yg_ =  m01_/m00_;
   a_ = mu20_ + mu02_;
@@ -1137,7 +1151,8 @@ void VisualFeaturesExtractor::calcExtendedAsymmetricalV1_2(Eigen::VectorXd &s, E
 
 }
 
-void VisualFeaturesExtractor::calcExtendedSymmetricalV1_2(Eigen::VectorXd &s, Eigen::MatrixXd &L_sym){
+void VisualFeaturesExtractor::calcExtendedSymmetricalV1_2(Eigen::VectorXd &s, Eigen::MatrixXd &L_sym)
+{
 
   xg_ =  m10_/m00_;
   yg_ =  m01_/m00_;
@@ -1190,7 +1205,8 @@ void VisualFeaturesExtractor::calcExtendedSymmetricalV1_2(Eigen::VectorXd &s, Ei
 
 }
 
-void VisualFeaturesExtractor::calcExtendedAsymmetricalV1_3(Eigen::VectorXd &s, Eigen::MatrixXd &L_asym){
+void VisualFeaturesExtractor::calcExtendedAsymmetricalV1_3(Eigen::VectorXd &s, Eigen::MatrixXd &L_asym)
+{
 
   xg_ =  m10_/m00_;
   yg_ =  m01_/m00_;
@@ -1242,7 +1258,8 @@ void VisualFeaturesExtractor::calcExtendedAsymmetricalV1_3(Eigen::VectorXd &s, E
 
 }
 
-void VisualFeaturesExtractor::calcExtendedSymmetricalV1_3(Eigen::VectorXd &s, Eigen::MatrixXd &L_sym){
+void VisualFeaturesExtractor::calcExtendedSymmetricalV1_3(Eigen::VectorXd &s, Eigen::MatrixXd &L_sym)
+{
 
   xg_ =  m10_/m00_;
   yg_ =  m01_/m00_;
@@ -1298,7 +1315,8 @@ void VisualFeaturesExtractor::calcExtendedSymmetricalV1_3(Eigen::VectorXd &s, Ei
 
 }
 
-void VisualFeaturesExtractor::simVisualFeaturesTFs(){
+void VisualFeaturesExtractor::simVisualFeaturesTFs()
+{
 
   // Transform for simulation
   tf::Transform TFff;
@@ -1328,7 +1346,8 @@ void VisualFeaturesExtractor::simVisualFeaturesTFs(){
   allTFwff_.push_back(tf::StampedTransform(TFwsf_ * TFff, ros::Time::now(), "world", "sim_features_f4"));
 }
 
-void VisualFeaturesExtractor::desVisualFeaturesTFs(){
+void VisualFeaturesExtractor::desVisualFeaturesTFs()
+{
 
   // Transform for simulation
   tf::Transform TF0f;
@@ -1383,7 +1402,8 @@ void VisualFeaturesExtractor::desVisualFeaturesTFs(){
 
 }
 
-void VisualFeaturesExtractor::calcFeaturesImageCoord(){
+void VisualFeaturesExtractor::calcFeaturesImageCoord()
+{
 
   TFcw_ = (TFwe_*TFec_).inverse();
   Eigen::Matrix3d K;

@@ -181,7 +181,8 @@ private:
    * @param res
    * @return
    */
-  bool setObstacleTrajectory(obstacle_detector::SetObstacleTrajectory::Request &req, obstacle_detector::SetObstacleTrajectory::Response &res);
+  bool setObstacleTrajectory(obstacle_detector::SetObstacleTrajectory::Request &req,
+                             obstacle_detector::SetObstacleTrajectory::Response &res);
 
   /**
    * @brief pclPointcloudCB Callback for pcl pointcloud
@@ -190,7 +191,9 @@ private:
    * @param safety_ton Output destination  safety timer
    * @param points_status Output destination  points status
    */
-  void pclPointcloudCB (const pcl::PointCloud<pcl::PointXYZ>::ConstPtr &cloud_msg, pcl::PointCloud<pcl::PointXYZ>::Ptr *dst_cloud_ptr, ros::Time *safety_ton, int *points_status);
+  void pclPointcloudCB (const pcl::PointCloud<pcl::PointXYZ>::ConstPtr &cloud_msg,
+                        pcl::PointCloud<pcl::PointXYZ>::Ptr *dst_cloud_ptr,
+                        ros::Time *safety_ton, int *points_status);
 
   /**
    * @brief rosPointcloudCB Callback for ros pointcloud
@@ -199,7 +202,9 @@ private:
    * @param safety_ton Output destination  safety timer
    * @param points_status Output destination  points status
    */
-  void rosPointcloudCB(const sensor_msgs::PointCloud2ConstPtr& msg, sensor_msgs::PointCloud2Ptr *dst_cloud_ptr, ros::Time *safety_ton, int *points_status);
+  void rosPointcloudCB(const sensor_msgs::PointCloud2ConstPtr& msg,
+                       sensor_msgs::PointCloud2Ptr *dst_cloud_ptr,
+                       ros::Time *safety_ton, int *points_status);
 
   /**
    * @brief getTFs Get all robot transformations
@@ -218,7 +223,9 @@ private:
    * @param filter_objects Output destination for filter objects
    * @param ns namespace of the input object on parameter server
    */
-  void getFilterObjectsParameters(XmlRpc::XmlRpcValue &obj, visualization_msgs::MarkerArray &filter_objects, const std::string &ns);
+  void getFilterObjectsParameters(XmlRpc::XmlRpcValue &obj,
+                                  visualization_msgs::MarkerArray &filter_objects,
+                                  const std::string &ns);
 
   /**
    * @brief filterBoxOut Input filter out a box defined by @par filter_objects from input pcl pointcloud
@@ -226,7 +233,9 @@ private:
    * @param in_cloud_ptr  Input pointer to input pointcloud
    * @param filtered_cloud_ptr Output pointer to filtered pointcloud
    */
-  void filterBoxOut(const visualization_msgs::Marker &filter_object, const pcl::PointCloud<pcl::PointXYZ>::Ptr &in_cloud_ptr, pcl::PointCloud<pcl::PointXYZ>::Ptr &filtered_cloud_ptr);
+  void filterBoxOut(const visualization_msgs::Marker &filter_object,
+                    const pcl::PointCloud<pcl::PointXYZ>::Ptr &in_cloud_ptr,
+                    pcl::PointCloud<pcl::PointXYZ>::Ptr &filtered_cloud_ptr);
 
   /**
    * @brief filterSphereOut  Input filter out a sphere defined by @par filter_objects from input pcl pointcloud
@@ -234,7 +243,9 @@ private:
    * @param in_cloud_ptr Input pointer to input pointcloud
    * @param filtered_cloud_ptr Output pointer to filtered pointcloud
    */
-  void filterSphereOut(const visualization_msgs::Marker &filter_object, const pcl::PointCloud<pcl::PointXYZ>::Ptr &in_cloud_ptr, pcl::PointCloud<pcl::PointXYZ>::Ptr &filtered_cloud_ptr);
+  void filterSphereOut(const visualization_msgs::Marker &filter_object,
+                       const pcl::PointCloud<pcl::PointXYZ>::Ptr &in_cloud_ptr,
+                       pcl::PointCloud<pcl::PointXYZ>::Ptr &filtered_cloud_ptr);
 
 
   /**

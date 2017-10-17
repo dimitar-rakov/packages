@@ -305,7 +305,10 @@ void ObstacleDetector::publish(){
 }
 
 
-void ObstacleDetector::pclPointcloudCB (const pcl::PointCloud<pcl::PointXYZ>::ConstPtr &cloud_msg, pcl::PointCloud<pcl::PointXYZ>::Ptr *dst_cloud_ptr, ros::Time *safety_ton, int *points_status ){
+void ObstacleDetector::pclPointcloudCB (const pcl::PointCloud<pcl::PointXYZ>::ConstPtr &cloud_msg,
+                                        pcl::PointCloud<pcl::PointXYZ>::Ptr *dst_cloud_ptr,
+                                        ros::Time *safety_ton, int *points_status )
+{
   ros::Time tic = ros::Time::now();
   boost::lock_guard<boost::mutex> guard(points_cb_mutex_);
   *dst_cloud_ptr = boost::const_pointer_cast<pcl::PointCloud<pcl::PointXYZ> >(cloud_msg);
@@ -314,7 +317,10 @@ void ObstacleDetector::pclPointcloudCB (const pcl::PointCloud<pcl::PointXYZ>::Co
   ROS_DEBUG("pclPointsCB takes %lf Size of out pointcloud %ld" , (ros::Time::now() -tic).toSec(), (*dst_cloud_ptr)->points.size());
 }
 
-void ObstacleDetector::rosPointcloudCB(const sensor_msgs::PointCloud2ConstPtr& msg, sensor_msgs::PointCloud2Ptr *dst_cloud_ptr, ros::Time *safety_ton, int *points_status){
+void ObstacleDetector::rosPointcloudCB(const sensor_msgs::PointCloud2ConstPtr& msg,
+                                       sensor_msgs::PointCloud2Ptr *dst_cloud_ptr,
+                                       ros::Time *safety_ton, int *points_status)
+{
   ROS_DEBUG("Time difference 1 %lf" , (ros::Time::now() - msg->header.stamp).toSec());
   ros::Time tic = ros::Time::now();
   boost::lock_guard<boost::mutex> guard(points_cb_mutex_);
@@ -369,7 +375,10 @@ void ObstacleDetector::buildRobotBodyFromSpheres(){
   }
 }
 
-void ObstacleDetector::getFilterObjectsParameters(XmlRpc::XmlRpcValue &obj, visualization_msgs::MarkerArray &filter_objects, const std::string &ns ){
+void ObstacleDetector::getFilterObjectsParameters(XmlRpc::XmlRpcValue &obj,
+                                                  visualization_msgs::MarkerArray &filter_objects,
+                                                  const std::string &ns )
+{
 
   for (XmlRpc::XmlRpcValue::ValueStruct::iterator map_it=obj.begin(); map_it!=obj.end(); ++map_it) {
     ROS_INFO_STREAM("Found obj: " << (std::string)(map_it->first));
@@ -445,7 +454,10 @@ void ObstacleDetector::getFilterObjectsParameters(XmlRpc::XmlRpcValue &obj, visu
 
 }
 
-void ObstacleDetector::filterBoxOut(const visualization_msgs::Marker &filter_object, const pcl::PointCloud<pcl::PointXYZ>::Ptr &in_cloud_ptr, pcl::PointCloud<pcl::PointXYZ>::Ptr &filtered_cloud_ptr){
+void ObstacleDetector::filterBoxOut(const visualization_msgs::Marker &filter_object,
+                                    const pcl::PointCloud<pcl::PointXYZ>::Ptr &in_cloud_ptr,
+                                    pcl::PointCloud<pcl::PointXYZ>::Ptr &filtered_cloud_ptr)
+{
 
     // Passtrough filters to build box inliers / outliers (faster than cropbox and conditional remove)
     pcl::PassThrough<pcl::PointXYZ> pass;
@@ -488,7 +500,10 @@ void ObstacleDetector::filterBoxOut(const visualization_msgs::Marker &filter_obj
 }
 
 
-void ObstacleDetector::filterSphereOut(const visualization_msgs::Marker &filter_object, const pcl::PointCloud<pcl::PointXYZ>::Ptr &in_cloud_ptr, pcl::PointCloud<pcl::PointXYZ>::Ptr &filtered_cloud_ptr){
+void ObstacleDetector::filterSphereOut(const visualization_msgs::Marker &filter_object,
+                                       const pcl::PointCloud<pcl::PointXYZ>::Ptr &in_cloud_ptr,
+                                       pcl::PointCloud<pcl::PointXYZ>::Ptr &filtered_cloud_ptr)
+{
 
     /// check if point is inside of any of safety spheres
     float xc = static_cast<float>(filter_object.pose.position.x);
