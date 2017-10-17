@@ -1,0 +1,8 @@
+<library path="lib/libobstacle_detector">
+    
+  <class name="obstacle_detector/ObstacleDetectorNodelet" type="obstacle_detector::ObstacleDetectorNodelet" base_class_type="nodelet::Nodelet">
+    <description>
+      obstacle_detector nodelet.
+    </description>
+  </class>
+</library>

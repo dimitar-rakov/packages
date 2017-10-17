@@ -27,6 +27,8 @@
 #include <pcl/octree/octree_impl.h>
 
 
+namespace obstacle_detector
+{
 
 static const bool USE_PCL_CB = true;
 
@@ -264,5 +266,5 @@ private:
    */
   void detectOctreeVoxels();
 };
-
+} // end of namespace obstacle_detector
 #endif // OBSTACLEDETECTOR_H

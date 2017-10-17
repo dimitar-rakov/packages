@@ -4,6 +4,8 @@
 #include <pcl/filters/approximate_voxel_grid.h>
 
 
+namespace obstacle_detector
+{
 
 ObstacleDetector::ObstacleDetector() { }
 
@@ -703,3 +705,4 @@ void ObstacleDetector::detectOctreeVoxels(){
   }
 
 }
+} // end of namespace obstacle_detector

@@ -34,6 +34,8 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   tf_conversions
   control_toolbox
+  nodelet
+  pluginlib
 )
 
 # Eigen
@@ -97,7 +99,7 @@ add_message_files(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES 
-  CATKIN_DEPENDS cv_bridge image_transport message_runtime roscpp tf tf_conversions std_msgs std_srvs geometry_msgs
+  CATKIN_DEPENDS cv_bridge image_transport message_runtime roscpp tf tf_conversions std_msgs std_srvs geometry_msgs nodelet pluginlib
   DEPENDS system_lib
 )
 
@@ -110,7 +112,10 @@ catkin_package(
  include_directories(include ${catkin_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR} ${aruco_INCLUDE_DIRS})
 
 # Declare a C++ library
-add_library(${PROJECT_NAME} src/visual_features_extractor.cpp)
+add_library(${PROJECT_NAME}
+  src/visual_features_extractor.cpp
+  src/visual_features_extractor_nodelet.cpp
+  )
 add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${OpenCV_LIBS} ${aruco_LIBS})
 
@@ -156,6 +161,10 @@ install(DIRECTORY launch/
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
   FILES_MATCHING PATTERN "*.launch"
 )
+
+install(FILES nodelet_plugins.xml
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+
 
 #############
 ## Testing ##

@@ -1,4 +1,6 @@
 <launch>
+  <arg name="des_period_sec"                default="0.04"/>
+  <arg name="using_nodelets"                default="true"/>
   <arg name="base_name"                     default="visual_fetures_extractor"/>
   <arg name="raw_images_topic"              default="/usb_cam/image_raw"/>
   <arg name="camera_name"                   default="eye_in_hand"/>
@@ -27,21 +29,43 @@
     </node>
   </group>
 
+  <group unless="$(arg using_nodelets)">
+    <node name="visual_features_extractor" pkg="visual_features_extractor" type="visual_features_extractor_node" respawn="false" output="screen">
+      <param name="des_period_sec"        type="double"   value="$(arg des_period_sec)"/>
+      <param name="base_name"                     type="str"    value="$(arg base_name)"/>
+      <param name="raw_images_topic"              type="str"    value="$(arg raw_images_topic)"/>
+      <param name="camera_name"                   type="str"    value="$(arg camera_name)"/>
+      <param name="using_sim_features"            type="bool"   value="$(arg using_sim_features)"/>
+      <param name="using_extended_features"       type="bool"   value="$(arg using_extended_features)"/>
+      <param name="using_symmetrical_features"    type="bool"   value="$(arg using_symmetrical_features)"/>
+      <param name="extended_features_var"         type="double" value="$(arg extended_features_var)"/>
+      <param name="using_colored_blobs"           type="bool"   value="$(arg using_colored_blobs)"/>
+      <param name="contour_area_threshold"        type="double" value="$(arg contour_area_threshold)"/>
+      <rosparam param="blobs_color_ranges"        subst_value="True">$(arg blobs_color_ranges)</rosparam>
+      <rosparam param="arucos_param"              subst_value="True">$(arg arucos_param)</rosparam>
+      <rosparam param="$(arg camera_name)"        file="$(arg camera_param_file)"         command="load"/>
+    </node>
+  </group>
 
-  <node name="visual_features_extractor" pkg="visual_features_extractor" type="visual_features_extractor_node" respawn="false" output="screen">
-    <param name="base_name"                     type="str"    value="$(arg base_name)"/>
-    <param name="raw_images_topic"              type="str"    value="$(arg raw_images_topic)"/>
-    <param name="camera_name"                   type="str"    value="$(arg camera_name)"/>
-    <param name="using_sim_features"            type="bool"   value="$(arg using_sim_features)"/>
-    <param name="using_extended_features"       type="bool"   value="$(arg using_extended_features)"/>
-    <param name="using_symmetrical_features"    type="bool"   value="$(arg using_symmetrical_features)"/>
-    <param name="extended_features_var"         type="double" value="$(arg extended_features_var)"/>
-    <param name="using_colored_blobs"           type="bool"   value="$(arg using_colored_blobs)"/>
-    <param name="contour_area_threshold"        type="double" value="$(arg contour_area_threshold)"/>
-    <rosparam param="blobs_color_ranges"        subst_value="True">$(arg blobs_color_ranges)</rosparam>
-    <rosparam param="arucos_param"              subst_value="True">$(arg arucos_param)</rosparam>
-    <rosparam param="$(arg camera_name)"        file="$(arg camera_param_file)"         command="load"/>
-  </node>
+  <group if="$(arg using_nodelets)">
+    <node pkg="nodelet" type="nodelet" name="standalone_nodelet"  args="manager" output="screen"/>
+    <node pkg="nodelet" type="nodelet" name="$(arg base_name)"
+          args="load visual_features_extractor/VisualFeaturesExtractorNodelet standalone_nodelet" output="screen">
+      <param name="des_period_sec"        type="double"   value="$(arg des_period_sec)"/>
+      <param name="base_name"                     type="str"    value="$(arg base_name)"/>
+      <param name="raw_images_topic"              type="str"    value="$(arg raw_images_topic)"/>
+      <param name="camera_name"                   type="str"    value="$(arg camera_name)"/>
+      <param name="using_sim_features"            type="bool"   value="$(arg using_sim_features)"/>
+      <param name="using_extended_features"       type="bool"   value="$(arg using_extended_features)"/>
+      <param name="using_symmetrical_features"    type="bool"   value="$(arg using_symmetrical_features)"/>
+      <param name="extended_features_var"         type="double" value="$(arg extended_features_var)"/>
+      <param name="using_colored_blobs"           type="bool"   value="$(arg using_colored_blobs)"/>
+      <param name="contour_area_threshold"        type="double" value="$(arg contour_area_threshold)"/>
+      <rosparam param="blobs_color_ranges"        subst_value="True">$(arg blobs_color_ranges)</rosparam>
+      <rosparam param="arucos_param"              subst_value="True">$(arg arucos_param)</rosparam>
+      <rosparam param="$(arg camera_name)"        file="$(arg camera_param_file)"         command="load"/>
+    </node>
+  </group>
 
   <node pkg="tf2_ros" type="static_transform_publisher" name="cam_to_end_eff" args="0.000 0.000 0.110 0.000 0.000 0.707106781 0.707106781 lwr_a6_link eye_in_hand " />
 

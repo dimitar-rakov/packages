@@ -33,6 +33,8 @@ find_package(catkin REQUIRED COMPONENTS
   image_transport
   pcl_conversions
   pcl_ros
+  nodelet
+  pluginlib
 )
 
 
@@ -129,7 +131,7 @@ add_service_files(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES 
-  CATKIN_DEPENDS roscpp sensor_msgs message_runtime cv_bridge image_transport pcl_conversions pcl_ros
+  CATKIN_DEPENDS roscpp sensor_msgs message_runtime cv_bridge image_transport pcl_conversions pcl_ros nodelet pluginlib
   DEPENDS system_lib
 )
 
@@ -147,7 +149,10 @@ include_directories(include
 )
 
 # Declare a C++ library
- add_library(${PROJECT_NAME} src/kinect_fusion.cpp)
+ add_library(${PROJECT_NAME}
+   src/kinect_fusion.cpp
+   src/kinect_fusion_nodelet.cpp
+ )
 
 
 # Add cmake target dependencies of the library
@@ -206,6 +211,9 @@ install(DIRECTORY launch/
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
   FILES_MATCHING PATTERN "*.launch"
 )
+
+install(FILES nodelet_plugins.xml
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 
 #############
 ## Testing ##

@@ -38,6 +38,8 @@
  * @brief The VisualFeaturesExtractor class
  */
 
+namespace visual_features_extractor
+{
 class VisualFeaturesExtractor
 {
 public:
@@ -459,5 +461,6 @@ private:
   void calcFeaturesImageCoord();
 
 };
-
+} // end of namespace visual_features_extractor
 #endif // VIS_FEATURE_EXTRACT_H
+

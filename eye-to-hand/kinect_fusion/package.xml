@@ -22,8 +22,12 @@
   <depend>pcl_conversions</depend>
   <depend>pcl_ros</depend>
   <depend>libpcl-all-dev</depend>
+  <depend>nodelet</depend>
+  <depend>pluginlib</depend>
 
 
-  <export> <!-- Other tools can request additional information be placed here --> </export>
+  <export>
+    <nodelet plugin="${prefix}/nodelet_plugins.xml"/>
+  </export>
 
 </package>

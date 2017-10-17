@@ -11,9 +11,10 @@
 #include <boost/lexical_cast.hpp>
 #include <sstream>
 
+namespace visual_features_extractor
+{
 VisualFeaturesExtractor::VisualFeaturesExtractor() :it_(nh_)
 { }
-
 
 bool VisualFeaturesExtractor::init(ros::NodeHandle &nh){
 
@@ -54,8 +55,6 @@ bool VisualFeaturesExtractor::init(ros::NodeHandle &nh){
     nh_.param("extended_features_var", extended_features_var_, 1.0);
     ROS_WARN("Parameter extended_features_var was not found. Default value is used: %lf", extended_features_var_);
   }
-
-  ROS_WARN("Parameter extended_features_var was not found. Default value is used: %lf", extended_features_var_);
 
   if (!nh_.getParam("using_colored_blobs", using_colored_blobs_)){
     nh_.param("using_colored_blobs", using_colored_blobs_, false);
@@ -550,9 +549,9 @@ bool VisualFeaturesExtractor::getTFs( )
 
 }
 
-bool VisualFeaturesExtractor::getCameraParameter(
-    const ros::NodeHandle &nh, const std::string &camera_name,
-    sensor_msgs::CameraInfo &dst_camera_param)
+bool VisualFeaturesExtractor::getCameraParameter( const ros::NodeHandle &nh,
+                                                  const std::string &camera_name,
+                                                  sensor_msgs::CameraInfo &dst_camera_param)
 {
 
   // Get image_width from parameter server
@@ -620,9 +619,9 @@ bool VisualFeaturesExtractor::getCameraParameter(
 }
 
 
-void VisualFeaturesExtractor::imageCB(
-    const sensor_msgs::ImageConstPtr& msg, cv_bridge::CvImagePtr *dst_image_ptr,
-    ros::Time *safety_ton, int *image_status)
+void VisualFeaturesExtractor::imageCB( const sensor_msgs::ImageConstPtr& msg,
+                                       cv_bridge::CvImagePtr *dst_image_ptr,
+                                       ros::Time *safety_ton, int *image_status)
 {
   boost::lock_guard<boost::mutex> guard(image_cb_mutex_);
   *safety_ton = ros::Time::now();
@@ -684,9 +683,9 @@ void VisualFeaturesExtractor::findBlobsContours(const cv::Mat &srs_image,
   }
 }
 
-void VisualFeaturesExtractor::findArucoMarkers(
-    const cv::Mat &srs_image, std::vector<aruco::Marker>  &dst_markers,
-    std::vector<std::string> &founded_features_names)
+void VisualFeaturesExtractor::findArucoMarkers( const cv::Mat &srs_image,
+                                                std::vector<aruco::Marker>  &dst_markers,
+                                                std::vector<std::string> &founded_features_names)
 {
 
   cv::Mat img;
@@ -1460,6 +1459,6 @@ void VisualFeaturesExtractor::calcFeaturesImageCoord()
   }
   ROS_DEBUG_STREAM("Des features:" << stream.str() );
 }
-
+} // end of namespace visual_features_extractor
 
 

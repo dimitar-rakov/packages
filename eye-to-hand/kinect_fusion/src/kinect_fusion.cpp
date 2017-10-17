@@ -3,8 +3,10 @@
 #include "pcl_ros/transforms.h"
 #include "opencv2/calib3d/calib3d.hpp"
 #include <boost/lexical_cast.hpp>
-
 #include <pcl/filters/filter.h>
+
+namespace kinect_fusion
+{
 
 KinectFusion::KinectFusion(){ }
 
@@ -371,3 +373,4 @@ void KinectFusion::pointcloudsFusion(std::vector<sensor_msgs::PointCloud2::Ptr> 
   pub_transformed_points2.publish(transf_clouds_ptr_[1]);
   ROS_INFO("clouds Fusion takes %lf Pointcloud height %d and width %d" , (ros::Time::now() -tic_all).toSec(), fused_cloud_ptr_->height, fused_cloud_ptr_->width);
 }
+} // end of namespace kinect_fusion

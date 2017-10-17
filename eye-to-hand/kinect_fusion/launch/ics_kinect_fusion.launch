@@ -1,6 +1,8 @@
 <launch>
 
     <!-- set the parameters for the points topics -->
+    <arg name="des_period_sec"          default="0.04"/>
+    <arg name="using_nodelets"          default="true"/>
     <arg name="base_name"               default="kinect_fusion"/>
     <arg name="raw_images_topics"       default="[/kinect2_k1/hd/image_color, /kinect2_k2/hd/image_color]"/>
     <arg name="cameras_info_topics"     default="[/kinect2_k1/hd/camera_info, /kinect2_k2/hd/camera_info]"/>
@@ -17,7 +19,9 @@
     <node pkg="tf2_ros" type="static_transform_publisher" name="rgb2_wrt_ir2" args="0.05690, 0.0057, 0.010, -0.0041 0.0025 0.0022 0.99999 kinect2_k2_ir_optical_frame kinect2_k2_rgb_optical_frame " />
     <node pkg="tf2_ros" type="static_transform_publisher" name="aruco_wrt_world" args="-0.150000 0.750000 0.000000 0.000000 0.707107 0.707107 -0.000000 world aruco " />
 
+  <group unless="$(arg using_nodelets)">
     <node name="$(arg base_name)" pkg="kinect_fusion" type="kinect_fusion_node" output="screen">
+        <param name="des_period_sec"        type="double"   value="$(arg des_period_sec)"/>
         <param name="base_name"                 type="str"    value="$(arg base_name)"/>
         <rosparam param="raw_images_topics"     subst_value="True">$(arg raw_images_topics)</rosparam>
         <rosparam param="points_topics"         subst_value="True">$(arg points_topics)</rosparam>
@@ -25,5 +29,20 @@
         <param name="using_aruco"               type="bool"   value="$(arg using_aruco)"/>
         <param name="aruco_marker_size"         type="double" value="$(arg aruco_marker_size)"/>
     </node>
+  </group>
+
+  <group if="$(arg using_nodelets)">
+    <node pkg="nodelet" type="nodelet" name="standalone_nodelet"  args="manager" output="screen"/>
+    <node pkg="nodelet" type="nodelet" name="$(arg base_name)"
+          args="load kinect_fusion/KinectFusionNodelet standalone_nodelet" output="screen">
+        <param name="des_period_sec"        type="double"   value="$(arg des_period_sec)"/>
+        <param name="base_name"                 type="str"    value="$(arg base_name)"/>
+        <rosparam param="raw_images_topics"     subst_value="True">$(arg raw_images_topics)</rosparam>
+        <rosparam param="points_topics"         subst_value="True">$(arg points_topics)</rosparam>
+        <rosparam param="cameras_info_topics"   subst_value="True">$(arg cameras_info_topics)</rosparam>
+        <param name="using_aruco"               type="bool"   value="$(arg using_aruco)"/>
+        <param name="aruco_marker_size"         type="double" value="$(arg aruco_marker_size)"/>
+    </node>
+  </group>
 
 </launch>

@@ -3,10 +3,8 @@
 
 
 
-void updateCB(const ros::TimerEvent& event, KinectFusion &kf)
+void updateCB(const ros::TimerEvent& event, kinect_fusion::KinectFusion &kf)
 {
-
-  //ros::spinOnce();
   kf.update(event.current_real, event.current_real - event.last_real);
 }
 
@@ -17,14 +15,16 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "kinect_fusion_node");
     ros::NodeHandle nh = ros::NodeHandle("~");
 
-    KinectFusion kf;
+    kinect_fusion::KinectFusion kf;
     kf.init(nh);
     //ros::Timer timer = nh.createTimer(ros::Duration(0.1), boost::bind(&updateCB, _1, kf));
 
-    ros::Time last_time = ros::Time::now(), init_time = ros::Time::now(), upd_time = ros::Time::now();
-
     // Remark currently all fusion is done in callback, therefore des_period does not matter
-    ros::Duration msr_period(0.010),des_period(0.010), work_period(0.010);
+    ros::Time last_time = ros::Time::now(), init_time = ros::Time::now(), upd_time = ros::Time::now();   
+    double des_perion_sec = 0.1;
+    if (!nh.getParam("des_period_sec", des_perion_sec))
+      ROS_WARN("Parameter des_period_sec was not found. Default value is used: %lf", des_perion_sec);
+    ros::Duration des_period(des_perion_sec), msr_period(des_perion_sec), work_period(des_perion_sec);;
 
     ros::AsyncSpinner spinner(4);
     spinner.start();

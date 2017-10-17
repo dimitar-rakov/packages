@@ -29,6 +29,8 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   pcl_conversions
   pcl_ros
+  nodelet
+  pluginlib
 )
 
 
@@ -71,7 +73,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES 
-  CATKIN_DEPENDS roscpp std_msgs visualization_msgs geometry_msgs message_runtime pcl_conversions pcl_ros
+  CATKIN_DEPENDS roscpp std_msgs visualization_msgs geometry_msgs message_runtime pcl_conversions pcl_ros nodelet pluginlib
   DEPENDS system_lib
 )
 
@@ -84,7 +86,10 @@ catkin_package(
  include_directories(include	${catkin_INCLUDE_DIRS})
 
 # Declare a C++ library
- add_library(${PROJECT_NAME} src/obstacle_detector.cpp)
+ add_library(${PROJECT_NAME}
+   src/obstacle_detector.cpp
+   src/obstacle_detector_nodelet.cpp
+   )
  add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
  target_link_libraries(${PROJECT_NAME}   ${catkin_LIBRARIES} )
 
@@ -130,6 +135,9 @@ install(DIRECTORY launch/
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
   FILES_MATCHING PATTERN "*.launch"
 )
+
+install(FILES nodelet_plugins.xml
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 
 #############
 ## Testing ##

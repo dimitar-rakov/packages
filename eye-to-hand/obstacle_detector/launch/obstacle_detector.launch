@@ -1,5 +1,6 @@
 <launch>
-
+    <arg name="des_period_sec"      default="0.08"/>
+    <arg name="using_nodelets"      default="true"/>
     <arg name="base_name"           default="obstacle_detector"/>
     <arg name="points_topic"        default="/kinect_fusion/points"/>
     <arg name="fixed_frame"         default="world"/>
@@ -7,7 +8,9 @@
     <arg name="octree_resolution"   default="0.14"/>
     <arg name="min_voxel_points"    default="40"/>
 
+  <group unless="$(arg using_nodelets)">
     <node name="$(arg base_name)"       pkg="obstacle_detector" type="obstacle_detector_node" output="screen">
+        <param name="des_period_sec"    type="double"           value="$(arg des_period_sec)"/>
         <rosparam file="$(find obstacle_detector)/config/hri_parameters.yaml" command="load"/>
         <param name="base_name"         type="str"              value="$(arg base_name)"/>
         <param name="points_topic"      type="str"              value="$(arg points_topic)"/>
@@ -16,6 +19,22 @@
         <param name="octree_resolution" type="double"           value="$(arg octree_resolution)"/>
         <param name="min_voxel_points"  type="int"              value="$(arg min_voxel_points)"/>
     </node>
+  </group>
+
+  <group if="$(arg using_nodelets)">
+    <node pkg="nodelet" type="nodelet" name="standalone_nodelet"  args="manager" output="screen"/>
+    <node pkg="nodelet" type="nodelet" name="$(arg base_name)"
+          args="load obstacle_detector/ObstacleDetectorNodelet standalone_nodelet" output="screen">
+        <param name="des_period_sec"    type="double"           value="$(arg des_period_sec)"/>
+        <rosparam file="$(find obstacle_detector)/config/hri_parameters.yaml" command="load"/>
+        <param name="base_name"         type="str"              value="$(arg base_name)"/>
+        <param name="points_topic"      type="str"              value="$(arg points_topic)"/>
+        <param name="fixed_frame"       type="str"              value="$(arg fixed_frame)"/>
+        <rosparam param="tf_names"      subst_value="True">     $(arg tf_names)</rosparam>
+        <param name="octree_resolution" type="double"           value="$(arg octree_resolution)"/>
+        <param name="min_voxel_points"  type="int"              value="$(arg min_voxel_points)"/>
+    </node>
+  </group>
 
 </launch>
 

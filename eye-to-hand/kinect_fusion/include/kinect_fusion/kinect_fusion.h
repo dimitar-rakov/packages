@@ -37,6 +37,8 @@
 
 static const int QUEUE_SIZE =3;
 
+namespace kinect_fusion
+{
 
 /**
  * @brief The KinectFusion class
@@ -237,5 +239,5 @@ private:
    */
   void pointcloudsFusion(std::vector<sensor_msgs::PointCloud2::Ptr>  in_clouds_ptrs);
 };
-
+} // end of namespace kinect_fusion
 #endif // KINECT_FUSION_H

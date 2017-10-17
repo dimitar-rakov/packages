@@ -1,0 +1,8 @@
+<library path="lib/libkinect_fusion">
+    
+  <class name="kinect_fusion/KinectFusionNodelet" type="kinect_fusion::KinectFusionNodelet" base_class_type="nodelet::Nodelet">
+    <description>
+      kinect_fusion nodelet.
+    </description>
+  </class>
+</library>

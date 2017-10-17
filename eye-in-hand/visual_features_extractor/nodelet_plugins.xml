@@ -1,0 +1,8 @@
+<library path="lib/libvisual_features_extractor">
+    
+  <class name="visual_features_extractor/VisualFeaturesExtractorNodelet" type="visual_features_extractor::VisualFeaturesExtractorNodelet" base_class_type="nodelet::Nodelet">
+    <description>
+      visual_features_extractor nodelet.
+    </description>
+  </class>
+</library>
