@@ -13,7 +13,7 @@ The following example start an imbvs_with_obstacles_avoidance_node:
 ```roslaunch imbvs_with_obstacles_avoidance imbvs_with_obstacles_avoidance.launch```
 
 
-Ofline documentation of the API based on doxygen can be generated whit rosdoc_lite. For generation start```rosdoc_lite .``` whitin the package directory. The generated documentation can be found in created doc/html/index.html
+Ofline API documentation based on doxygen can be generated whit rosdoc_lite. For generation start ```rosdoc_lite .``` whitin the package directory. The generated documentation can be found in created doc/html/index.html
 
 
 ## Parameters
