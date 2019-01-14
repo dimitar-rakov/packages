@@ -153,7 +153,6 @@ private:
   /// Transform listener
   tf::TransformListener lr_;
 
-
   /// Message for all data publisher
   std_msgs::Float64MultiArray all_data_msg;
 
@@ -217,13 +216,11 @@ private:
   /// Inverse of Jacobian to robot surface point  wrt to robot base
   Eigen::MatrixXd J_pinv_bs_ ;
 
-
   /// Repulsive joint vector
   Eigen::VectorXd joint_rep_field_;
 
   /// Previus repulsive joint vector used for exponential filtration
   Eigen::VectorXd joint_rep_field_prev_;
-
 
   /// Measured features vector
   Eigen::VectorXd s_msr_;

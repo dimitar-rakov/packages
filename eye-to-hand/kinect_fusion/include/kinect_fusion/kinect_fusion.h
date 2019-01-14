@@ -51,6 +51,7 @@ public:
      * @brief KinectFusion Default constructor
      */
   KinectFusion();
+
   /**
      * @brief init Initilializing of KinectFusion. It has to be called only once before update().
      * @param nh Input node handle
@@ -194,8 +195,12 @@ private:
    * @param marker_size Input aruco marker size
    * @param windows_name Input window name for imshow()
    */
-  void markerDetect(const cv:: Mat& srs_image, const sensor_msgs::CameraInfoPtr &cam_info_ptr,
-                    tf::Transform &dstTF, int marker_id, double marker_size, std::string windows_name );
+  void markerDetect(const cv:: Mat& srs_image,
+                    const sensor_msgs::CameraInfoPtr &cam_info_ptr,
+                    tf::Transform &dstTF,
+                    int marker_id,
+                    double marker_size,
+                    std::string windows_name );
 
   /**
    * @brief imageCB Callback function to images raw topic
@@ -204,8 +209,10 @@ private:
    * @param safety_ton Output destination  safety timer
    * @param image_status Output destination  image status
    */
-  void imageCB(const sensor_msgs::ImageConstPtr& msg, cv_bridge::CvImagePtr *dst_image_ptr,
-               ros::Time *safety_ton, int *image_status);
+  void imageCB(const sensor_msgs::ImageConstPtr& msg,
+               cv_bridge::CvImagePtr *dst_image_ptr,
+               ros::Time *safety_ton,
+               int *image_status);
 
   /**
    * @brief cameraInfoCB Callback function to camera info
@@ -227,9 +234,12 @@ private:
    * @param msg5 Incoming pointcloud 5 message
    * @param msg6 Incoming pointcloud 6 message
    */
-  void syncPointcloudsCB( const sensor_msgs::PointCloud2ConstPtr& msg1, const sensor_msgs::PointCloud2ConstPtr& msg2,
-                          const sensor_msgs::PointCloud2ConstPtr& msg3, const sensor_msgs::PointCloud2ConstPtr& msg4,
-                          const sensor_msgs::PointCloud2ConstPtr& msg5, const sensor_msgs::PointCloud2ConstPtr& msg6);
+  void syncPointcloudsCB( const sensor_msgs::PointCloud2ConstPtr& msg1,
+                          const sensor_msgs::PointCloud2ConstPtr& msg2,
+                          const sensor_msgs::PointCloud2ConstPtr& msg3,
+                          const sensor_msgs::PointCloud2ConstPtr& msg4,
+                          const sensor_msgs::PointCloud2ConstPtr& msg5,
+                          const sensor_msgs::PointCloud2ConstPtr& msg6);
 
   /**
    * @brief pointcloudsFusion All fusion calculations

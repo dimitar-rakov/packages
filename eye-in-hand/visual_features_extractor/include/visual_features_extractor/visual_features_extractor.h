@@ -24,6 +24,8 @@
 //OpenCV headers
 #include <opencv2/core/core.hpp>
 
+#include "iostream"
+
 //Pthread Headers
 #include <boost/thread/mutex.hpp>
 

@@ -21,26 +21,50 @@ class LWRHWGazebo : public LWRHW
 public:
 
   LWRHWGazebo();
-  ~LWRHWGazebo();
+  ~LWRHWGazebo() final;
 
-  void setParentModel(gazebo::physics::ModelPtr parent_model);
+  /**
+   * @brief init Initialize a new lwr_hw
+   * @param nh Node handle
+   * @return True by success, false otherwise
+   */
+  bool init(ros::NodeHandle &nh) final;
 
-  // Init, read, and write, with Gazebo hooks
-  bool init(ros::NodeHandle &nh);
-  void read(ros::Time time, ros::Duration period);
-  void write(ros::Time time, ros::Duration period);
+  /**
+   * @brief write Write command values for joint handles
+   * @param time Current ros time
+   * @param period Last period used by integration and differentiation
+   */
+  void read(ros::Time time, ros::Duration period) final;
+
+  /**
+   * @brief write Write command values for joint handles
+   * @param time Current ros time
+   * @param period Last period used by integration and differentiation
+   */
+  void write(ros::Time time, ros::Duration period) final;
+
+  /**
+   * @brief setParentModel Set parent model in Gazebo
+   * @param parent_model_ptr
+   */
+  void setParentModel(gazebo::physics::ModelPtr parent_model_ptr);
+
 
 private:
-  ros::NodeHandle nh_;
 
   // workaround: simple P controller to overcome the ofsets caused by physical properties of the gazebo model
   // ToDo for improvement to move this simple controllers in a separate thread with fixed sampling
   std::vector<double> joint_cmd_position_add_;
   std::vector<double> joint_cmd_effort_add_;    //Because of specific of gazebo 2 does not work, therefore not used. ToDo test in gazebo > 4
 
-  // Gazebo stuff
+  // Robot joints in gazebo
   std::vector<gazebo::physics::JointPtr> sim_joints_;
-  gazebo::physics::ModelPtr parent_model_;
+
+  /// Gazebo physics model
+  gazebo::physics::ModelPtr parent_model_ptr;
+
+  /// Indicate whatever the physics model was set
   bool parent_set_ = false;
 
 

@@ -251,7 +251,7 @@ void VisualFeaturesExtractor::update(const ros::Time& time, const ros::Duration&
           cv::Point2d fc = cv::Point2d( momensts.m10/momensts.m00 , momensts.m01/momensts.m00);
           if (fc.x < cam_param_.width && fc.y < cam_param_.height){
             features_coord.push_back(fc);
-            stream << founded_features_names[i]<< fixed << setprecision(4) << " ["<<fc.x<<"  " <<fc.y<<"]   ";
+            stream << founded_features_names[i]<< std::fixed << std::setprecision(4) << " ["<<fc.x<<"  " <<fc.y<<"]   ";
           }
           else
              stream << founded_features_names[i]<< " [ out of FOV ]   ";
@@ -267,7 +267,7 @@ void VisualFeaturesExtractor::update(const ros::Time& time, const ros::Duration&
           fc = cv::Point2d(fc.x/4.0, fc.y/4.0);
           if (fc.x < cam_param_.width && fc.y < cam_param_.height){
             features_coord.push_back(fc);
-            stream << founded_features_names[i]<< fixed << setprecision(4) << " ["<<fc.x<<"  " <<fc.y<<"]   ";
+            stream << founded_features_names[i]<< std::fixed << std::setprecision(4) << " ["<<fc.x<<"  " <<fc.y<<"]   ";
           }
           else
             stream << founded_features_names[i]<< " [ out of FOV ]   ";
@@ -1434,7 +1434,7 @@ void VisualFeaturesExtractor::calcFeaturesImageCoord()
       cv::Point2d fc = cv::Point2d(Xv(0)/Xv(2), Xv(1)/Xv(2));
       if (fc.x >= 0 && fc.x <cam_param_.width && fc.y >= 0 && fc.y < cam_param_.height ){
         sim_features_coord_.push_back(fc);
-        stream << features_names_[i]<< fixed << setprecision(4) << " ["<<fc.x<<"  " <<fc.y<<"]   ";
+        stream << features_names_[i]<< std::fixed << std::setprecision(4) << " ["<<fc.x<<"  " <<fc.y<<"]   ";
       }
       else
         stream << features_names_[i]<< " [ out of FOV ]   ";
@@ -1450,7 +1450,7 @@ void VisualFeaturesExtractor::calcFeaturesImageCoord()
     cv::Point2d fc = cv::Point2d(allTFcdf_[i].getOrigin().getX(), allTFcdf_[i].getOrigin().getY());
     if (fc.x  >= 0 && fc.x  <cam_param_.width && fc.y  >= 0 && fc.y  < cam_param_.height ){
       des_features_coord_.push_back(fc);
-      stream << features_names_[i]<< fixed << setprecision(4) << " ["<<fc.x<<"  " <<fc.y<<"]   ";
+      stream << features_names_[i]<< std::fixed << std::setprecision(4) << " ["<<fc.x<<"  " <<fc.y<<"]   ";
     }
     else
       stream << features_names_[i]<< " [ out of FOV ]   ";

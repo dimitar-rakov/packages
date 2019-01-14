@@ -7,7 +7,6 @@
   <author>Dimitar Rakov</author>
   <buildtool_depend>catkin</buildtool_depend>
 
-  <buildtool_depend>catkin</buildtool_depend>
   <depend>roscpp</depend>
   <depend>rospy</depend>
   <depend>std_msgs</depend>
