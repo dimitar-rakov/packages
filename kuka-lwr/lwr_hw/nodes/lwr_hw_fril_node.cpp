@@ -79,24 +79,19 @@ int main( int argc, char** argv )
   // construct and start the real lwr
   lwr_hw::LWRHWFRIL lwr_robot;
   lwr_robot.create(name, urdf_string);
-  std::cout<<"ok1!"<<std::endl;
   lwr_robot.setInitFile(file);
-    std::cout<<"ok2!"<<std::endl;
   if(!lwr_robot.init(lwr_nh))
   {
     ROS_FATAL_NAMED("lwr_hw","Could not initialize robot real interface");
     return -1;
   }
-    std::cout<<"ok3.0!"<<std::endl;
   // timer variables
   struct timespec ts = {0, 0};
   ros::Time last(ts.tv_sec, ts.tv_nsec), now(ts.tv_sec, ts.tv_nsec);
   ros::Duration period(1.0);
-    std::cout<<"ok3.1!"<<std::endl;
 
   //the controller manager
   controller_manager::ControllerManager manager(&lwr_robot, lwr_nh);
-  std::cout<<"ok4!"<<std::endl;
   // run as fast as possible
   while( !g_quit ) 
   {

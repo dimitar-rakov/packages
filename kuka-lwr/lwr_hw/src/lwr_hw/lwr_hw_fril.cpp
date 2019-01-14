@@ -6,15 +6,9 @@ namespace lwr_hw
   LWRHWFRIL::LWRHWFRIL() :
       LWRHW(),
       file_set_(false),
-      ResultValue (0)
+      result_status_ (0)
   {}
   LWRHWFRIL::~LWRHWFRIL() {}
-
-  void LWRHWFRIL::stop(){return;}
-
-  void LWRHWFRIL::set_mode(){return;}
-
-  void LWRHWFRIL::setInitFile(std::string init_file){init_file_ = init_file; file_set_ = true;}
 
   // Init, read, and write, with FRI hooks
   bool LWRHWFRIL::init(ros::NodeHandle &nh)
@@ -22,19 +16,17 @@ namespace lwr_hw
     nh_ = nh;
     if( !(file_set_) )
     {
-      std::cout << "Did you forget to set the init file?" << std::endl
-                << "You must do that before init()" << std::endl
-                << "Exiting..." << std::endl;
+      std::cout << "Did you forget to set the init file? You must do that before init(). Exiting...\n";
       return false;
     }
 
     // construct a low-level lwr
     device_.reset( new FastResearchInterface( init_file_.c_str() ) );
 
-    ResultValue	=	device_->StartRobot( FRI_CONTROL_POSITION );
-    if (ResultValue != EOK)
+    result_status_ =	device_->StartRobot( FRI_CONTROL_POSITION );
+    if (result_status_ != 0)
     {
-      std::cout << "An error occurred during starting up the robot...\n" << std::endl;
+      std::cout << "An error occurred during starting up the robot...\n\n";
       return false;
     }
 
@@ -53,12 +45,11 @@ namespace lwr_hw
     {
       joint_msr_position_prev_[j] = joint_msr_position_[j];
       joint_msr_velocity_prev_[j] = joint_msr_velocity_[j];
-      joint_msr_position_[j] = (double)msrJntPos[j];
+      joint_msr_position_[j] = static_cast <double>(msrJntPos[j]);
       joint_position_kdl_(j) = joint_msr_position_[j];
-      joint_msr_effort_[j] = (double)msrJntTrq[j];
+      joint_msr_effort_[j] = static_cast <double>(msrJntTrq[j]);
       joint_msr_position_[j] = (joint_msr_position_[j]-joint_msr_position_prev_[j])/period.toSec();
       joint_msr_velocity_[j] = filters::exponentialSmoothing(joint_msr_velocity_[j], joint_msr_velocity_prev_[j], 0.9);
-      joint_msr_stiffness_[j] = joint_cmd_stiffness_[j];
     }
     return;
   }
@@ -74,17 +65,13 @@ namespace lwr_hw
 
       switch (getControlStrategy())
       {
-
         case JOINT_POSITION:
-
           // Ensure the robot is in this mode
           if( (device_->GetCurrentControlScheme() == FRI_CONTROL_POSITION) )
           {
              float newJntPosition[n_joints_];
-             for (int j = 0; j < n_joints_; j++)
-             {
-               newJntPosition[j] = (float)joint_cmd_position_[j];
-             }
+             for (size_t j = 0; j < n_joints_; j++)
+               newJntPosition[j] = static_cast <float>(joint_cmd_position_[j]);
              device_->SetCommandedJointPositions(newJntPosition);
           }
           break;
@@ -111,10 +98,10 @@ namespace lwr_hw
 
             for(int j=0; j < n_joints_; j++)
             {
-              newJntPosition[j] = (float)joint_cmd_position_[j];
-              newJntAddTorque[j] = (float)joint_cmd_effort_[j];
-              newJntStiff[j] = (float)joint_cmd_stiffness_[j];
-              newJntDamp[j] = (float)joint_cmd_damping_[j];
+              newJntPosition[j] = static_cast<float> (joint_cmd_position_[j]);
+              newJntAddTorque[j] = static_cast <float>(joint_cmd_effort_[j]);
+              newJntStiff[j] = static_cast <float>(joint_cmd_stiffness_[j]);
+              newJntDamp[j] = static_cast <float>(joint_cmd_damping_[j]);
             }
             device_->SetCommandedJointStiffness(newJntStiff);
             device_->SetCommandedJointPositions(newJntPosition);
@@ -130,34 +117,22 @@ namespace lwr_hw
   void LWRHWFRIL::doSwitch(const std::list<hardware_interface::ControllerInfo> &start_list, const std::list<hardware_interface::ControllerInfo> &stop_list)
   {
 
-    ResultValue	=	device_->StopRobot();
-    if (ResultValue != EOK)
+    if (device_->StopRobot() != 0)
     {
-        std::cout << "An error occurred during stopping the robot, couldn't switch mode...\n" << std::endl;
-        return;
+      std::cout << "An error occurred during stopping the robot, couldn't switch mode...\n\n";
+      return;
     }
 
     // at this point, we now that there is only one controller that ones to command joints
     ControlStrategy desired_strategy = JOINT_POSITION; // default
 
-    // If any of the controllers in the start list works on a velocity interface, the switch can't be done.
-    for ( std::list<hardware_interface::ControllerInfo>::const_iterator it = start_list.begin(); it != start_list.end(); ++it )
-    {
-      if( it->hardware_interface.compare( std::string("hardware_interface::PositionJointInterface") ) == 0 )
-      {
-        std::cout << "Request to switch to hardware_interface::PositionJointInterface (JOINT_POSITION)" << std::endl;
-        desired_strategy = JOINT_POSITION;
-        break;
-      }
-      else if( it->hardware_interface.compare( std::string("hardware_interface::EffortJointInterface") ) == 0 )
-      {
-        std::cout << "Request to switch to hardware_interface::EffortJointInterface (JOINT_IMPEDANCE)" << std::endl;
-        desired_strategy = JOINT_IMPEDANCE;
-        break;
-      }
-    }
+    desired_strategy = getNewControlStrategy(start_list,stop_list,desired_strategy);
 
-    for (int j = 0; j < n_joints_; ++j)
+    // only allow joint position and joint impedance control strategies, otherwise set the default (JOINT_POSITION) strategy
+    if(desired_strategy != JOINT_POSITION && desired_strategy != JOINT_IMPEDANCE)
+      desired_strategy = JOINT_POSITION;
+
+    for (size_t j = 0; j < n_joints_; ++j)
     {
       ///semantic Zero
       joint_cmd_position_[j] = joint_msr_position_[j];
@@ -175,36 +150,37 @@ namespace lwr_hw
     }
 
     if(desired_strategy == getControlStrategy())
-    {
-      std::cout << "The ControlStrategy didn't changed, it is already: " << getControlStrategy() << std::endl;
-    }
+      std::cout << "The ControlStrategy didn't changed, it is already: " << getControlStrategy() <<"\n" ;
     else
     {
       switch( desired_strategy )
       {
-        case JOINT_POSITION:
-          ResultValue = device_->StartRobot( FRI_CONTROL_POSITION );
-          if (ResultValue != EOK)
-          {
-            std::cout << "An error occurred during starting the robot, couldn't switch to JOINT_POSITION...\n" << std::endl;
-            return;
-          }
-          break;
-         case JOINT_IMPEDANCE:
-          ResultValue = device_->StartRobot( FRI_CONTROL_JNT_IMP );
-          if (ResultValue != EOK)
-          {
-            std::cout << "An error occurred during starting the robot, couldn't switch to JOINT_IMPEDANCE...\n" << std::endl;
-            return;
-          }
-          break;
+      case JOINT_POSITION:
+        if (device_->StartRobot( FRI_CONTROL_POSITION) != 0)
+        {
+          std::cout << "An error occurred during starting the robot, couldn't switch to JOINT_POSITION...\n" ;
+          return;
+        }
+        break;
+      case JOINT_IMPEDANCE:
+        if (device_->StartRobot( FRI_CONTROL_POSITION) != 0)
+        {
+          std::cout << "An error occurred during starting the robot, couldn't switch to JOINT_IMPEDANCE...\n";
+          return;
+        }
+        break;
       }
 
       // if sucess during the switch in FRI, set the ROS strategy
       setControlStrategy(desired_strategy);
-
-      std::cout << "The ControlStrategy changed to: " << getControlStrategy() << std::endl;
+      std::cout << "The ControlStrategy changed to: " << getControlStrategy() <<"\n" ;
     }
   }
+
+  void LWRHWFRIL::stop(){return;}
+
+  void LWRHWFRIL::set_mode(){return;}
+
+  void LWRHWFRIL::setInitFile(std::string init_file){init_file_ = init_file; file_set_ = true;}
 
 }

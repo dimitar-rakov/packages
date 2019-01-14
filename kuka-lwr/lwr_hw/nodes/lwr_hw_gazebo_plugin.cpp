@@ -55,23 +55,15 @@ public:
 
     // Get namespace for nodehandle
     if(sdf_->HasElement("robotNamespace"))
-    {
       robot_namespace_ = sdf_->GetElement("robotNamespace")->Get<std::string>();
-    }
     else
-    {
       robot_namespace_ = parent_model_->GetName(); // default
-    }
 
     // Get robot_description ROS param name
     if (sdf_->HasElement("robotParam"))
-    {
       robot_description_ = sdf_->GetElement("robotParam")->Get<std::string>();
-    }
     else
-    {
       robot_description_ = "robot_description"; // default
-    }
 
     // Get the Gazebo simulation period
     ros::Duration gazebo_period(parent_model_->GetWorld()->GetPhysicsEngine()->GetMaxStepSize());
@@ -115,26 +107,18 @@ public:
     robot_hw_sim_->create(robot_namespace_, urdf_string);
     robot_hw_sim_->setParentModel(parent_model_);
 
-    /////////////////////d.r. New features///////////////////////
-
     // Set initial joint position from yaml file if exist
-    // Get the info from parameter server
-
-    for(int j=0; j < robot_hw_sim_->n_joints_; j++)
+    for(size_t j=0; j < robot_hw_sim_->n_joints_; j++)
     {
 
         // take/set initial positions
-        if (ros::param::get(std::string("/") + robot_hw_sim_->joint_names_[j] + std::string("/init_position"), robot_hw_sim_->joint_cmd_position_[j]) ){
+        if (ros::param::get("/" + robot_hw_sim_->joint_names_[j] + "/init_position", robot_hw_sim_->joint_cmd_position_[j]) )
             ROS_INFO("Initial position for %s is: %f", robot_hw_sim_->joint_names_[j].c_str(), robot_hw_sim_->joint_cmd_position_[j]);
-        }
         else{
             robot_hw_sim_->joint_cmd_position_[j] = 0.00;    // default value
             ROS_WARN("Initial position for %s was not found. Default value is set: %f", robot_hw_sim_->joint_names_[j].c_str(), robot_hw_sim_->joint_cmd_position_[j]);
         }
     }
-
-    /////////////////////////////////////////////////////////////
-
 
     if(!robot_hw_sim_->init(model_nh_))
     {
@@ -142,17 +126,13 @@ public:
       return;
     }
 
-
-
     // Create the controller manager
     ROS_INFO_STREAM_NAMED("ros_control_plugin","Loading controller_manager");
     controller_manager_.reset
       (new controller_manager::ControllerManager(robot_hw_sim_.get(), model_nh_));
 
     // Listen to the update event. This event is broadcast every simulation iteration.
-    update_connection_ =
-      gazebo::event::Events::ConnectWorldUpdateBegin
-      (boost::bind(&LWRHWsimPlugin::Update, this));
+    update_connection_ = gazebo::event::Events::ConnectWorldUpdateBegin(boost::bind(&LWRHWsimPlugin::Update, this));
 
     ROS_INFO_NAMED("lwr_hw", "Loaded lwr_hw.");
   }

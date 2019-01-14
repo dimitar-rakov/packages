@@ -31,7 +31,6 @@
 #include <string>
 #include <hardware_interface/internal/hardware_resource_manager.h>
 #include <hardware_interface/joint_state_interface.h>
-#include <lwr_hw_interfaces/joint_generic_state_interface.h>
 
 namespace hardware_interface
 {

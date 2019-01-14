@@ -1,7 +1,7 @@
 <package format="2">
   <name>lwr_hw</name>
   <version>0.3.0</version>
-  <description>The lwr_hw package implementes real and simulation interfaces to the LWR 4</description>
+  <description>The lwr_hw package implements real and simulation interfaces to the LWR 4</description>
   <maintainer email="dimitar.rakov@tum.de">Dimitar Rakov</maintainer>
 
   <license>GPLv2</license>
