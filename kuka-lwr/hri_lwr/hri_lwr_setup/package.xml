@@ -1,9 +1,9 @@
 <package format="2">
   <name>hri_lwr_setup</name>
-  <version>0.1.0</version>
+  <version>0.2.0</version>
   <description>The hri_lwr_setup package</description>
 
-  <maintainer email="dimitar.rakov@tum.de">Dimitar Rakov</maintainer>
+  <maintainer email="dimitar.rakov@gmail.com">Dimitar Rakov</maintainer>
 
   <license>BSD</license>
 

@@ -1,6 +1,7 @@
 #include "nodelet/nodelet.h"
 #include <pluginlib/class_list_macros.h>
 #include <boost/thread.hpp>
+#include <memory>
 #include "kinect_fusion/kinect_fusion.h"
 
 
@@ -61,7 +62,7 @@ namespace kinect_fusion
     }
 
   private:
-    boost::shared_ptr<KinectFusion> kinect_fusion_ptr_;
+    std::unique_ptr<KinectFusion> kinect_fusion_ptr_;
     boost::shared_ptr<boost::thread> run_thread_ptr_;
   };
 

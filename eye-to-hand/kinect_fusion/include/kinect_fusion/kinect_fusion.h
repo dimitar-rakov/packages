@@ -28,14 +28,13 @@
 
 //Standard Headers
 #include <stdlib.h>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 
 
 #include <message_filters/subscriber.h>
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
 
-static const int QUEUE_SIZE =3;
 
 namespace kinect_fusion
 {
@@ -46,8 +45,11 @@ namespace kinect_fusion
 class KinectFusion
 {
 public:
-  typedef sensor_msgs::PointCloud2 PC2;
-  typedef message_filters::sync_policies::ApproximateTime<PC2, PC2, PC2, PC2, PC2, PC2> sync_policy6;
+  typedef sensor_msgs::PointCloud2 PC2; /// \todo {Use using instead of typedef}
+  typedef message_filters::sync_policies::ApproximateTime<PC2, PC2, PC2, PC2, PC2, PC2> sync_policy6; /// \todo {Use using instead of typedef}
+
+  /// Queue size for message filter
+  static const int QUEUE_SIZE =3;
 
   /**
      * @brief KinectFusion Default constructor
@@ -87,12 +89,6 @@ private:
   /// Publisher for fussed pointcloud
   ros::Publisher pub_fussed_points;
 
-  /// Publisher for transformed poincloud of sensor 1 \todo {Remove in future, since it is only for test purposes}
-  ros::Publisher pub_transformed_points1;
-
-  /// Publisher for transformed poincloud of sensor 2 \todo {Remove in future, since it is only for test purposes}
-  ros::Publisher pub_transformed_points2;
-
   /// Container for all transformations from sensors' frames to world
   std::vector< tf::Transform >  TFs_w_c;
 
@@ -100,7 +96,7 @@ private:
   std::vector<tf::Transform> TFs_a_c_;
 
   /// Transform listener
-  tf::TransformListener lr_;
+  tf::TransformListener lr_; /// \todo {Update  TransformListener with the new API}
 
   /// Container for subscribers related to raw images
   std::vector<image_transport::Subscriber> subs_image_raw_;
@@ -115,16 +111,16 @@ private:
   std::vector<cv_bridge::CvImagePtr> in_images_ptr_;
 
   /// Container for pointers related to camera infos, used only in callback
-  std::vector<sensor_msgs::CameraInfo::Ptr> cb_cam_info_ptr_;
+  std::vector<sensor_msgs::CameraInfoConstPtr> cb_cam_info_ptr_;
 
   /// Container for pointers related to camera infos, used in update
-  std::vector<sensor_msgs::CameraInfo::Ptr> in_cam_info_ptr_;
+  std::vector<sensor_msgs::CameraInfoConstPtr> in_cam_info_ptr_;
 
   /// Container for pointers related to pointclouds, used only in callback
-  std::vector<sensor_msgs::PointCloud2::Ptr> cb_clouds_ptr_;
+  std::vector<sensor_msgs::PointCloud2ConstPtr> cb_clouds_ptr_;
 
   /// Container for pointers related to pointclouds, used in update
-  std::vector<sensor_msgs::PointCloud2::Ptr> in_clouds_ptr_;
+  std::vector<sensor_msgs::PointCloud2ConstPtr> in_clouds_ptr_;
 
   /// Container for pointers of  transformed pointclouds
   std::vector<sensor_msgs::PointCloud2::Ptr> transf_clouds_ptr_;
@@ -177,13 +173,13 @@ private:
   ros::Time safety_tons_points_;
 
   /// Mutex for image callbacks
-  boost::mutex image_cb_mutex_;
+  std::mutex image_cb_mutex_;
 
   /// Mutex for synchronizer callback
-  boost::mutex sync_cb_mutex_;
+  std::mutex sync_cb_mutex_;
 
   /// Mutex for cameras info callbacks
-  boost::mutex cam_info_cb_mutex_;
+  std::mutex cam_info_cb_mutex_;
 
 
 
@@ -196,7 +192,7 @@ private:
    * @param marker_size Input aruco marker size
    * @param windows_name Input window name for imshow()
    */
-  void markerDetect(const cv:: Mat& srs_image, const sensor_msgs::CameraInfoPtr &cam_info_ptr,
+  void markerDetect(const cv:: Mat& srs_image, const sensor_msgs::CameraInfoConstPtr &cam_info_ptr,
                     tf::Transform &dstTF, int marker_id, double marker_size, std::string windows_name );
 
   /**
@@ -206,8 +202,9 @@ private:
    * @param safety_ton Output destination  safety timer
    * @param image_status Output destination  image status
    */
-  void imageCB(const sensor_msgs::ImageConstPtr& msg, cv_bridge::CvImagePtr *dst_image_ptr,
-               ros::Time *safety_ton, int *image_status);
+  void imageCB(const sensor_msgs::ImageConstPtr& msg,
+               cv_bridge::CvImagePtr& dst_image_ptr,
+               ros::Time& safety_ton, int & image_status);
 
   /**
    * @brief cameraInfoCB Callback function to camera info
@@ -217,8 +214,8 @@ private:
    * @param dst_status Output destination safety timer
    */
   void cameraInfoCB(const sensor_msgs::CameraInfoConstPtr& msg,
-                    sensor_msgs::CameraInfoPtr* dst_cam_info_ptr,
-                    ros::Time *dst_safety_ton, int *dst_status);
+                    sensor_msgs::CameraInfoConstPtr &dst_cam_info_ptr,
+                    ros::Time &dst_safety_ton, int &dst_status);
 
   /**
    * @brief syncPointcloudsCB Synchronized callback function to all point raw topic
@@ -237,7 +234,7 @@ private:
    * @brief pointcloudsFusion All fusion calculations
    * @param in_clouds_ptrs Container for all input pointlcoud pointers
    */
-  void pointcloudsFusion(std::vector<sensor_msgs::PointCloud2::Ptr>  in_clouds_ptrs);
+  void pointcloudsFusion(const std::vector<sensor_msgs::PointCloud2ConstPtr> &in_clouds_ptrs);
 };
 } // end of namespace kinect_fusion
 #endif // KINECT_FUSION_H
