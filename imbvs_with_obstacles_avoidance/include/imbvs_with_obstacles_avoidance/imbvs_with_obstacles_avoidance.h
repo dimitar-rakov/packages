@@ -25,8 +25,7 @@
 #include <kdl_parser/kdl_parser.hpp>
 
 #include <boost/scoped_ptr.hpp>
-#include <boost/thread/condition.hpp>
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 
 // TF
 #include <tf/transform_listener.h>
@@ -79,11 +78,6 @@ public:
      * @param period Input last update period
      */
   void update(const ros::Time& time, const ros::Duration& period);
-  /**
-   * @brief command Calback for external setpoint for desired features (not used)
-   * @param msg Incomming message
-   */
-  void command(const  imbvs_with_obstacles_avoidance::VisualServoing &msg);
 
   /**
      * @brief publish All publishers are whitin. Data for publishing has to be prepared previously in update ()
@@ -107,7 +101,6 @@ private:
   /// Joint previus desired states used for trapezoidal integration
   KDL::JntArrayAcc joint_des_states_prev_;
 
-
   /// Stored joint states at initial obstacles interaction
   KDL::JntArrayAcc joint_init_interaction_states_;
 
@@ -123,19 +116,17 @@ private:
     KDL::JntArray effort;
   } joint_limits_;
 
-  /// Subcriber to command
-  ros::Subscriber sub_command_;
 
-  /// Subcriber to visual data
+  /// Subscriber to visual data
   ros::Subscriber sub_visual_features_data_;
 
-  /// Subcriber to obstacles objects
+  /// Subscriber to obstacles objects
   ros::Subscriber sub_markers_obstacles_objects_;
 
-  /// Subcriber to robot body objects
+  /// Subscriber to robot body objects
   ros::Subscriber sub_markers_robot_objects_;
 
-  /// Subcriber to robot joint states
+  /// Subscriber to robot joint states
   ros::Subscriber sub_joint_state_;
 
   /// Publisher for all data
@@ -153,7 +144,6 @@ private:
   /// Transform listener
   tf::TransformListener lr_;
 
-
   /// Message for all data publisher
   std_msgs::Float64MultiArray::Ptr all_data_msg_ptr_;
 
@@ -166,11 +156,29 @@ private:
   /// Container for robot links names
   std::vector<std::string> tf_names_;
 
-  /// Markers related to robot body
-  visualization_msgs::MarkerArray markers_robot_objects_;
+  /// Container for marker's pointers related to robot body, used in callback
+  visualization_msgs::MarkerArray::ConstPtr cb_markers_robot_objects_ptr_;
 
-  /// Markers related to obstacles
-  visualization_msgs::MarkerArray markers_obstacles_objects_;
+  /// Container for marker's pointers related to robot body, used in update
+  visualization_msgs::MarkerArray::ConstPtr in_markers_robot_objects_ptr_;
+
+  /// Container for marker's pointers related to obstacles, used in callback
+  visualization_msgs::MarkerArray::ConstPtr cb_markers_obstacles_objects_ptr_;
+
+  /// Container for marker's pointers related to obstacles, used in update
+  visualization_msgs::MarkerArray::ConstPtr in_markers_obstacles_objects_ptr_;
+
+  /// Container for visual features pointers, used in callback
+  imbvs_with_obstacles_avoidance::VisFeature::ConstPtr cb_vis_features_ptr_;
+
+  /// Container for visual features pointers, used in update
+  imbvs_with_obstacles_avoidance::VisFeature::ConstPtr in_vis_features_ptr_;
+
+  /// Container for joints states features pointers, used in callback
+  sensor_msgs::JointState::ConstPtr cb_joints_states_ptr_;
+
+  /// Container for joints states features pointers, used in update
+  sensor_msgs::JointState::ConstPtr in_joints_states_ptr_;
 
   /// Current pose end efffector wrt robot base
   KDL::Frame Fbe_;
@@ -217,13 +225,11 @@ private:
   /// Inverse of Jacobian to robot surface point  wrt to robot base
   Eigen::MatrixXd J_pinv_bs_ ;
 
-
   /// Repulsive joint vector
   Eigen::VectorXd joint_rep_field_;
 
   /// Previus repulsive joint vector used for exponential filtration
   Eigen::VectorXd joint_rep_field_prev_;
-
 
   /// Measured features vector
   Eigen::VectorXd s_msr_;
@@ -283,16 +289,35 @@ private:
   double max_ni1_;
 
 
-  /**
-   * Flags for topics data. status -1 - not not received, status 0 - delayed,
-   * status 1 - receive in time and data ok, status 2 - receive in time and not valid data,
-  */
-  int obstacles_obj_status_;
-  int robot_obj_status_;
-  int msr_features_status_;
-  int des_features_status_;
-  int joints_state_status_;
+  /// Flag for topics obstacles_obj data used in callback: status 1 - not received, status 0 - delayed, status 1 - receive in time and data ok, status 2 - receive in time and valid data
+  int cb_obstacles_obj_status_;
 
+  /// Flag for topics obstacles_obj data used in update: status 1 - not received, status 0 - delayed, status 1 - receive in time and data ok, status 2 - receive in time and valid data
+  int in_obstacles_obj_status_;
+
+  /// Flag for topics obstacles_obj data used in callback: status 1 - not received, status 0 - delayed, status 1 - receive in time and data ok, status 2 - receive in time and valid data
+  int cb_robot_obj_status_;
+
+  /// Flag for topics obstacles_obj data used in update: status 1 - not received, status 0 - delayed, status 1 - receive in time and data ok, status 2 - receive in time and valid data
+  int in_robot_obj_status_;
+
+  /// Flag for topics obstacles_obj data used in callback: status 1 - not received, status 0 - delayed, status 1 - receive in time and data ok, status 2 - receive in time and valid data
+  int cb_msr_features_status_;
+
+  /// Flag for topics obstacles_obj data used in update: status 1 - not received, status 0 - delayed, status 1 - receive in time and data ok, status 2 - receive in time and valid data
+  int in_msr_features_status_;
+
+  /// Flag for topics obstacles_obj data used in callback: status 1 - not received, status 0 - delayed, status 1 - receive in time and data ok, status 2 - receive in time and valid data
+  int cb_des_features_status_;
+
+  /// Flag for topics obstacles_obj data used in update: status 1 - not received, status 0 - delayed, status 1 - receive in time and data ok, status 2 - receive in time and valid data
+  int in_des_features_status_;
+
+  /// Flag for topics obstacles_obj data used in callback: status 1 - not received, status 0 - delayed, status 1 - receive in time and data ok, status 2 - receive in time and valid data
+  int cb_joints_state_status_;
+
+  /// Flag for topics obstacles_obj data used in update: status 1 - not received, status 0 - delayed, status 1 - receive in time and data ok, status 2 - receive in time and valid data
+  int in_joints_state_status_;
 
   /// Safety timers robot objects
   ros::Time safety_ton_robot_obj_;
@@ -323,7 +348,6 @@ private:
 
   /// Go to initial position
   bool restoring_initial_ ;
-
 
   /// Enable usage of combined interaction matrices (from parameter server)
   bool using_combined_matrices_;
@@ -386,47 +410,49 @@ private:
   double alpha_;
 
   /// Mutex for feaures callback
-  boost::mutex features_mutex_;
+  std::mutex features_mutex_;
 
   /// Mutex for obstacles objects callback
-  boost::mutex obst_mutex_;
-
-  /// Mutex for commmand callback
-  boost::mutex cmd_mutex_;
+  std::mutex obst_mutex_cb_;
 
   /// Mutex for joint state callback
-  boost::mutex joint_mutex_;
+  std::mutex joint_mutex_cb_;
 
   /// Mutex for robot objects callback
-  boost::mutex robot_mutex_;
+  std::mutex robot_obj_mutex_cb_;
 
   /// Desired end effector pose stored at begging of interaction
   KDL::Frame Fbe_des_;
 
 
   /**
-   * @brief jointPositionCB Calback for joint position
-   * @param msg Incoming msg
+   * @brief getParameters Function for get parameters from parameter server
    */
-  void jointPositionCB(const sensor_msgs::JointState &msg);
+  bool getParameters();
+
+  /**
+   * @brief jointsStatesCB Calback for joint position
+   * @param msg Incoming msg ConstPtr
+   */
+  void jointsStatesCB(const sensor_msgs::JointState::ConstPtr &msg);
 
   /**
    * @brief featureExtractorCB Calback for features data
-   * @param msg Incoming msg
+   * @param msg Incoming msg ConstPtr
    */
-  void featureExtractorCB(const imbvs_with_obstacles_avoidance::VisFeature &msg);
+  void featureExtractorCB(const imbvs_with_obstacles_avoidance::VisFeature::ConstPtr &msg);
 
   /**
    * @brief obstaclesObjectsCB Calback for obstacles objects
-   * @param msg Incoming msg
+   * @param msg Incoming msg ConstPtr
    */
-  void obstaclesObjectsCB(const visualization_msgs::MarkerArray &msg);
+  void obstaclesObjectsCB(const visualization_msgs::MarkerArray::ConstPtr &msg);
 
   /**
    * @brief robotObjectsCB Calback for robot objects
-   * @param msg Incoming msg
+   * @param msg Incoming msg ConstPtr
    */
-  void robotObjectsCB(const visualization_msgs::MarkerArray &msg);
+  void robotObjectsCB(const visualization_msgs::MarkerArray::ConstPtr &msg);
 
   /**
    * @brief recordAllData Record imbvs data

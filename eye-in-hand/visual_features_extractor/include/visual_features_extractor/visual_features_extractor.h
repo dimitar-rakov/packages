@@ -25,7 +25,7 @@
 #include <opencv2/core/core.hpp>
 
 //Pthread Headers
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 
 //Eigen
 #include <eigen3/Eigen/Dense>
@@ -89,7 +89,7 @@ private:
   sensor_msgs::CameraInfo cam_param_;
 
   /// Mutex for image callback
-  boost::mutex  image_cb_mutex_;
+  std::mutex  image_cb_mutex_;
 
   /// Transform broadcaster for all simulated features transform
   tf::TransformBroadcaster br_;
@@ -239,8 +239,11 @@ private:
   /// Desired features coordinates in image space
   std::vector< cv::Point2d>des_features_coord_;
 
-  /// Topics' data status : [-1] - not not received, [0] - delayed, status [1] - receive in time and data ok
-  int image_status_;
+  /// Topics' data status used in callback : [-1] - not received, [0] - delayed, status [1] - receive in time and data ok
+  int cb_image_status_;
+
+  /// Topics' data status used in update : [-1] - not received, [0] - delayed, status [1] - receive in time and data ok
+  int in_image_status_;
 
   /// Safety timers for topics
   ros::Time safety_ton_image_;

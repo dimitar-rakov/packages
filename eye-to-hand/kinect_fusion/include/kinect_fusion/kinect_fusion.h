@@ -63,7 +63,7 @@ public:
   bool init(ros::NodeHandle &nh);
 
   /**
-     * @brief update Periodicaly called. All calculations related to the class are done whitin.
+     * @brief update Periodicaly called. All calculations related to the class are done within.
      * @param time Input time from start
      * @param period Input last update period
      */
@@ -151,17 +151,29 @@ private:
   /// Aruco marler id (not used) (from parameter server)
   int aruco_marker_id_;
 
-  /// Containers for flags related to raw images topics data. status -1 - not not received, status 0 - delayed,
+  /// Container with for flags related to raw images topics data used in callback: status -1 - not not received, status 0 - delayed,
   /// status 1 - receive in time and data ok, status 2 - receive in time and not valid data,
-  std::vector<int> image_status_;
+  std::vector<int> cb_image_status_;
 
-  /// Containers for flags related to cameras info topics data. status -1 - not not received, status 0 - delayed,
+  /// Container with for flags related to raw images topics data used in update: status -1 - not not received, status 0 - delayed,
   /// status 1 - receive in time and data ok, status 2 - receive in time and not valid data,
-  std::vector<int> cam_info_status_;
+  std::vector<int> in_image_status_;
 
-  /// Flag related to pointcloud topics data. status -1 - not not received, status 0 - delayed,
+  /// Container with flags related to cameras info topics data used in callback: status -1 - not not received, status 0 - delayed,
   /// status 1 - receive in time and data ok, status 2 - receive in time and not valid data,
-  int points_status_;
+  std::vector<int> cb_cam_info_status_;
+
+  /// Container with flags related to cameras info topics data used in update: status -1 - not not received, status 0 - delayed,
+  /// status 1 - receive in time and data ok, status 2 - receive in time and not valid data,
+  std::vector<int> in_cam_info_status_;
+
+  /// Flag related to pointcloud topics data used in callback: status -1 - not not received, status 0 - delayed,
+  /// status 1 - receive in time and data ok, status 2 - receive in time and not valid data,
+  int cb_points_status_;
+
+  /// Flag related to pointcloud topics data used in update: status -1 - not not received, status 0 - delayed,
+  /// status 1 - receive in time and data ok, status 2 - receive in time and not valid data,
+  int in_points_status_;
 
   /// Safety timers for raw images topics
   std::vector<ros::Time> safety_tons_images_;
@@ -180,7 +192,6 @@ private:
 
   /// Mutex for cameras info callbacks
   std::mutex cam_info_cb_mutex_;
-
 
 
   /**

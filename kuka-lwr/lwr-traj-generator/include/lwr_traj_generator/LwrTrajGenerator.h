@@ -2,51 +2,96 @@
 #define LWR_TRAJ_GENERATOR_H
 
 //Standard Headers
-#include <iostream>
-#include <stdio.h>
 #include <stdlib.h>
-#include <algorithm>
-#include <pthread.h>
-#include <eigen3/Eigen/Eigen>
+#include <mutex>
 
 //ROS headers
 #include "ros/ros.h"
-#include <image_transport/image_transport.h>
-#include "sensor_msgs/Image.h"
-#include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/JointState.h>
-#include <cv_bridge/cv_bridge.h>             //interface between ROS and OpenCV
 #include <std_msgs/Float64MultiArray.h>
 #include <std_msgs/String.h>
 
 class LwrTrajGenerator
 {
 public:
-    LwrTrajGenerator();
-    void init (ros::NodeHandle &nh);
-    void update(const ros::Time& time, const ros::Duration& period);
-    void command(const std_msgs::String &msg);
 
+  /**
+      * @brief LwrTrajGenerator Default constructor
+      */
+  LwrTrajGenerator();
 
-    // variables
-    pthread_mutex_t count_mutex;
+  /**
+       * @brief init Initilializing of LwrTrajGenerator. It has to be called only once.
+       * @param nh node handle
+       * @return true if everithing pass normaly, false otherwise
+       */
+  void init (ros::NodeHandle &nh);
 
+  /**
+       * @brief update Periodicaly called. All calculations related to this class are done within.
+       * @param time Time from start
+       * @param period Last update period
+       */
+  void update(const ros::Time& time, const ros::Duration& period);
+
+  /**
+     * @brief command Callback function for command different action
+     * @param msg desired position e.g. start, stop, home up
+     */
+  void command(const std_msgs::String &msg);
+
+  /**
+   * @brief getJointPosition Callback for measured joint positions
+   * @param msg Joint state
+   */
+  void getJointPosition(const sensor_msgs::JointState &msg);
 
 private:
-    void startTrajectroies();
-    void stopTrajectroies();
-    void goToPosition(Eigen::VectorXd goal_pos);
-    void getJointPosition(const sensor_msgs::JointState &msg);
+  /**
+     * @brief startTrajectroies Start robot joint trajectories
+     */
+  void startTrajectroies();
 
+  /**
+     * @brief stopTrajectroies Stop current robot joint trajectories
+     */
+  void stopTrajectroies();
 
-    std::vector<Eigen::VectorXd> all_traj;
-    Eigen::VectorXd joint_msr_pos_, joint_des_pos_, home_pos_;
-    ros::NodeHandle nh_;
-    ros::Subscriber sub_command_, sub_joint_state_;
-    ros::Publisher  pub_posture_;
-    std_msgs::Float64MultiArray cmd_msg_;
-    bool flag_work_;
-    double stuck_time_;
+  /**
+     * @brief goToPosition
+     * @param goal_pos Desired roboter joint position
+     */
+  void goToPosition(const std::vector<double> &goal_pos);
+
+  /// Node handle
+  ros::NodeHandle nh_;
+
+  /// Publisher posture
+  ros::Publisher  pub_posture_;
+
+  /// Subscriber for command callback
+  ros::Subscriber sub_command_;
+
+  /// Subscriber for joint state
+  ros::Subscriber sub_joint_state_;
+
+  /// All trajectories container
+  std::vector<std::vector<double>> all_traj;
+
+  /// Measured joint position
+  std::vector<double> joint_msr_pos_;
+
+  /// Homing joint position
+  std::vector<double>  home_pos_;
+
+  /// Command position work
+  std_msgs::Float64MultiArray::Ptr cmd_msg_ptr_;
+
+  /// Work flag
+  bool flag_work_;
+
+  /// Elapsed time since last trajectory start
+  ros::Duration elapsed_time_;
 
 };
 

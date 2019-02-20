@@ -14,9 +14,7 @@
 
 //Standard Headers
 #include <stdlib.h>
-
-// Boost
-#include <boost/thread/mutex.hpp>
+#include <mutex>
 
 //PCL
 #include <pcl_conversions/pcl_conversions.h>
@@ -30,7 +28,7 @@
 namespace obstacle_detector
 {
 
-static const bool USE_PCL_CB = true;
+
 
 /**
  * @brief The ObstacleDetector class
@@ -38,6 +36,9 @@ static const bool USE_PCL_CB = true;
 class ObstacleDetector
 {
 public:
+
+  /// Allow usage of a callback function with original PCL format
+  static const bool USE_PCL_CB = true;
 
   /**
      * @brief ObstacleDetector Default constructor
@@ -93,7 +94,7 @@ private:
   ros::Publisher pub_markers_filter_robot_objects_fixed_;
 
   /// Mutex for pointcloud callback
-  boost::mutex  points_cb_mutex_;
+  std::mutex  points_cb_mutex_;
 
   /// Radius of spheres used for approximation of robot body (in meters)
   double radius_sphere_robot_body_;
@@ -120,10 +121,10 @@ private:
   visualization_msgs::MarkerArray::Ptr filter_robot_objects_fixed_ptr_;
 
   /// Pointer related to ros pointcloud, used only in callback
-  sensor_msgs::PointCloud2::Ptr cb_ros_cloud_ptr_;
+  sensor_msgs::PointCloud2ConstPtr cb_ros_cloud_ptr_;
 
   /// Pointer related to pcl pointcloud, used only in callback
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cb_cloud_ptr_;
+  pcl::PointCloud<pcl::PointXYZ>::ConstPtr cb_cloud_ptr_;
 
   /// Pointer related to filtered ros pointcloud, used for publishing
   sensor_msgs::PointCloud2::Ptr filtered_ros_cloud_ptr_;
@@ -152,9 +153,13 @@ private:
   /// Filtering  min amount of points whitin a voxel for real objects
   int min_voxel_points_;
 
-  /// Flags for topics data. status -1 - not not received, status 0 - delayed,
+  /// Flag for topics data used in callback. status -1 - not not received, status 0 - delayed,
   /// status 1 - receive in time and data ok, status 2 - receive in time and not valid data
-  int points_status_;
+  int cb_points_status_;
+
+  /// Flag for topics data used in update. status -1 - not not received, status 0 - delayed,
+  /// status 1 - receive in time and data ok, status 2 - receive in time and not valid data
+  int in_points_status_;
 
   /// Safety Timers for topics
   ros::Time safety_ton_points_;
@@ -194,8 +199,8 @@ private:
    * @param points_status Output destination  points status
    */
   void pclPointcloudCB (const pcl::PointCloud<pcl::PointXYZ>::ConstPtr &cloud_msg,
-                        pcl::PointCloud<pcl::PointXYZ>::Ptr *dst_cloud_ptr,
-                        ros::Time *safety_ton, int *points_status);
+                        pcl::PointCloud<pcl::PointXYZ>::ConstPtr &dst_cloud_ptr,
+                        ros::Time &safety_ton, int &points_status);
 
   /**
    * @brief rosPointcloudCB Callback for ros pointcloud
@@ -205,8 +210,8 @@ private:
    * @param points_status Output destination  points status
    */
   void rosPointcloudCB(const sensor_msgs::PointCloud2ConstPtr& msg,
-                       sensor_msgs::PointCloud2Ptr *dst_cloud_ptr,
-                       ros::Time *safety_ton, int *points_status);
+                       sensor_msgs::PointCloud2ConstPtr &dst_cloud_ptr,
+                       ros::Time &safety_ton, int &points_status);
 
   /**
    * @brief getTFs Get all robot transformations

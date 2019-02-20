@@ -1,6 +1,7 @@
 #include "nodelet/nodelet.h"
 #include <pluginlib/class_list_macros.h>
 #include <boost/thread.hpp>
+#include <memory>
 #include "obstacle_detector/obstacle_detector.h"
 
 
@@ -62,7 +63,7 @@ namespace obstacle_detector
     }
 
   private:
-    boost::shared_ptr<ObstacleDetector> obstacle_detector_ptr_;
+    std::unique_ptr<ObstacleDetector> obstacle_detector_ptr_;
     boost::shared_ptr<boost::thread> run_thread_ptr_;
   };
 

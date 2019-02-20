@@ -1,6 +1,6 @@
 # Kinect fusion
 
-ROS/indigo package for pointclouds fusion from up to 6 kinect sensors
+ROS/kinetic package for pointclouds fusion from up to 6 kinect sensors
 
 ## Overview
 

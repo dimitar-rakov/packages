@@ -1,8 +1,9 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(obstacle_detector)
 
+add_definitions (-fpermissive -std=c++11)
+set (CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}" )
 
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 #a dummy_target so qtcreator have access to all files
 ######################################################################### 
 FILE(GLOB children ${CMAKE_SOURCE_DIR}/*)

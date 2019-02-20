@@ -8,7 +8,6 @@
 #include "kdl_conversions/kdl_msg.h"
 #include "tf_conversions/tf_kdl.h"
 #include <control_toolbox/filters.h>
-#include <boost/lexical_cast.hpp>
 #include <sstream>
 
 
@@ -145,7 +144,8 @@ bool VisualFeaturesExtractor::init(ros::NodeHandle &nh){
   // Initialize for the case with simulated features
   rect_image_ = cv::Mat::zeros(cam_param_.height, cam_param_.width, CV_8UC3);
 
-  image_status_ = -1;
+  cb_image_status_ = -1;
+  in_image_status_ = -1;
   safety_ton_image_.fromSec(-10.0);
 
   // ToDo from parameter server
@@ -176,8 +176,8 @@ bool VisualFeaturesExtractor::init(ros::NodeHandle &nh){
   //    TFwsf_.setRotation(tf::createQuaternionFromRPY(M_PI_2, 0, M_PI_2));
 
   // sim features wrt to hri world  default
-//  TFwsf_.setOrigin(tf::Vector3( 0.0,  -0.23,  0.78));
-//  TFwsf_.setRotation(tf::createQuaternionFromRPY(0,  0,  0));
+  //  TFwsf_.setOrigin(tf::Vector3( 0.0,  -0.23,  0.78));
+  //  TFwsf_.setRotation(tf::createQuaternionFromRPY(0,  0,  0));
 
 
   //Kept only for test
@@ -194,7 +194,7 @@ bool VisualFeaturesExtractor::init(ros::NodeHandle &nh){
 
   // Initialize  image subsribers
   if (!using_sim_features_)
-    sub_img_transport_= it_.subscribe(raw_images_topic_, 1, boost::bind(&VisualFeaturesExtractor::imageCB, this, _1, &cb_images_ptr_, &safety_ton_image_, &image_status_));
+    sub_img_transport_= it_.subscribe(raw_images_topic_, 1, boost::bind(&VisualFeaturesExtractor::imageCB, this, _1, &cb_images_ptr_, &safety_ton_image_, &cb_image_status_));
 
   // Initialize  publishers
   pub_vis_data_ = nh_.advertise<visual_features_extractor::VisFeature>(nh_.getNamespace()+"/visual_features_data", 10);
@@ -215,15 +215,15 @@ void VisualFeaturesExtractor::update(const ros::Time& time, const ros::Duration&
 
   Eigen::IOFormat CleanFmt(Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", "\n", "[", "]");
   std::cout << std::fixed << std::setprecision(4);
-
   // Safety timers and image mutex
   {
-    boost::lock_guard<boost::mutex> guard(image_cb_mutex_);
-    if ((ros::Time::now()- safety_ton_image_).toSec()< 2.0 && image_status_> -1){ image_status_; }
-    else if ((ros::Time::now()- safety_ton_image_).toSec()> 2.0 && image_status_> -1){ image_status_= 0; }
-    if (image_status_ == 0 && !using_sim_features_) ROS_WARN("Image's topic is not longer available");
-    else if (image_status_ == -1 && !using_sim_features_) ROS_WARN_THROTTLE(5, "Waiting for image's topic");
-    in_images_ptr_ =cb_images_ptr_;
+    std::lock_guard<std::mutex> guard(image_cb_mutex_);
+    in_image_status_ = cb_image_status_;
+    in_images_ptr_ = cb_images_ptr_;
+    if ((ros::Time::now()- safety_ton_image_).toSec()< 2.0 && in_image_status_> -1){ in_image_status_; }
+    else if ((ros::Time::now()- safety_ton_image_).toSec()> 2.0 && in_image_status_> -1){ in_image_status_= 0; }
+    if (in_image_status_ == 0 && !using_sim_features_) ROS_WARN("Image's topic is not longer available");
+    else if (in_image_status_ == -1 && !using_sim_features_) ROS_WARN_THROTTLE(5, "Waiting for image's topic");
   }
 
   // Message for visual data publisher
@@ -236,7 +236,7 @@ void VisualFeaturesExtractor::update(const ros::Time& time, const ros::Duration&
     std::vector<std::vector<cv::Point> > contours;
     std::vector<std::string> founded_features_names;
     std::vector<aruco::Marker>  markers;
-    if (image_status_ ==1 && !using_sim_features_){
+    if (in_image_status_ ==1 && !using_sim_features_){
       tic = ros::Time::now();
       // Rectify the image
       if (!cam_param_.K.empty() && !cam_param_.D.empty()){
@@ -458,7 +458,7 @@ bool VisualFeaturesExtractor:: setDesiredTemplate(visual_features_extractor::Set
   std::vector<std::vector<cv::Point> > contours;
   std::vector<std::string> founded_features_names;
   std::vector<aruco::Marker>  markers;
-  if (image_status_ ==1 && !using_sim_features_){
+  if (in_image_status_ ==1 && !using_sim_features_){
     if (using_colored_blobs_ ){
       findBlobsContours(rect_image_ , contours, founded_features_names);
       for (size_t i = 0; i< contours.size(); i++){
@@ -624,7 +624,7 @@ void VisualFeaturesExtractor::imageCB( const sensor_msgs::ImageConstPtr& msg,
                                        cv_bridge::CvImagePtr *dst_image_ptr,
                                        ros::Time *safety_ton, int *image_status)
 {
-  boost::lock_guard<boost::mutex> guard(image_cb_mutex_);
+  std::lock_guard<std::mutex> guard(image_cb_mutex_);
   *safety_ton = ros::Time::now();
   try{
     // transform ROS image into OpenCV image

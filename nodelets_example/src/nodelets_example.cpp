@@ -1,5 +1,4 @@
 #include "nodelets_example/nodelets_example.h"
-#include <boost/thread/lock_guard.hpp>
 
 namespace examples
 {
@@ -50,7 +49,7 @@ bool NodeletsExample::init(ros::NodeHandle &nh)
 void NodeletsExample::update(const ros::Time& time, const ros::Duration& period){
   // Safety mutex
   {
-    boost::lock_guard<boost::mutex> guard(markers_cb_mutex_);
+    std::lock_guard<std::mutex> guard(markers_cb_mutex_);
     in_markers_ptr_ = cb_markers_ptr_;
   }
 
@@ -96,10 +95,10 @@ void NodeletsExample::update(const ros::Time& time, const ros::Duration& period)
 }
 
 void NodeletsExample::markersCB(const visualization_msgs::MarkerArray::ConstPtr &msg){
-  boost::lock_guard<boost::mutex> guard(markers_cb_mutex_);
+  std::lock_guard<std::mutex> guard(markers_cb_mutex_);
   ROS_INFO ("Calback in obstacleObjectsCB from %s received. Delay %lf " ,
             base_name_.c_str(), (ros::Time::now() - msg->markers[0].header.stamp).toSec());
-  cb_markers_ptr_ = boost::const_pointer_cast<visualization_msgs::MarkerArray>(msg);
+  cb_markers_ptr_ = msg;
 
 }
 } // end of namespace examples

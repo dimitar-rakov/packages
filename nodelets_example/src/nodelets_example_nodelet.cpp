@@ -40,7 +40,8 @@ namespace examples
 
     /** @brief run thread loop. */
     void run() {
-      ros::Time last_time = ros::Time::now(), init_time = ros::Time::now();
+      ros::Time last_time = ros::Time::now();
+      ros::Time init_time = ros::Time::now();
       double des_perion_sec;
       if (!getPrivateNodeHandle().getParam("des_period_sec", des_perion_sec))
         ROS_WARN("Parameter des_period_sec was not found. Default value is used: %lf", des_perion_sec);

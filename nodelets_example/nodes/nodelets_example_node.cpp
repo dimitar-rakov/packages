@@ -13,7 +13,8 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    ros::Time last_time = ros::Time::now(), init_time = ros::Time::now();
+    ros::Time last_time = ros::Time::now();
+    ros::Time init_time = ros::Time::now();
     double des_perion_sec;
     if (!nh.getParam("des_period_sec", des_perion_sec))
       ROS_WARN("Parameter des_period_sec was not found. Default value is used: %lf", des_perion_sec);

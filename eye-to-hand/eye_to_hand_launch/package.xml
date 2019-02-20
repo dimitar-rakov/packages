@@ -1,22 +1,18 @@
-<?xml version="1.0"?>
-<package>
+<package format="2">
   <name>eye_to_hand_launch</name>
-  <version>0.1.0</version>
-  <description>The eye_in_hand_launch package to launch kinect2_bridge and obstacle_detector.</description>
-  <!-- kinect2_bridge is maintended by Thiemo Wiedemeyer <wiedemeyer@cs.uni-bremen.de>, Institute for Artificial Intelligence, University of Bremen -->
-  <!-- as part from iai_kinect2 package at https://github.com/code-iai/iai_kinect2 -->
-
-
-  <maintainer email="dimitar.rakov@tum.de">Dimitar Rakov</maintainer>
-
+  <version>1.0.1</version>
+  <description>The eye_in_hand_launch package to launch kinect2_bridge and obstacle_detector</description>
+  <maintainer email="dimitar.rakov@gmail.com">Dimitar Rakov</maintainer>
   <license>BSD</license>
+  <author>Dimitar Rakov</author>
 
   <buildtool_depend>catkin</buildtool_depend>
 
-  <run_depend>kinect2_viewer</run_depend>
-  <run_depend>kinect2_bridge</run_depend>
-  <run_depend>obstacle_detector</run_depend>	
+  <depend>kinect2_viewer</depend>
+  <depend>kinect2_bridge</depend>
+  <depend>obstacle_detector</depend>
 
   <export>
   </export>
+
 </package>

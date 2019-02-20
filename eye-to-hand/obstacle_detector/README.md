@@ -1,6 +1,6 @@
 # Obstacle detector
 
-ROS/indigo package for subtraction of known background and robot body from pointcloud as well as for approximation of obstacles with octree voxels.
+ROS/kinetic package for subtraction of known background and robot body from pointcloud as well as for approximation of obstacles with octree voxels.
 
 ## Overview
 

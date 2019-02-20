@@ -2,7 +2,6 @@
 #include "boost/bind/bind.hpp"
 #include "pcl_ros/transforms.h"
 #include "opencv2/calib3d/calib3d.hpp"
-#include <boost/lexical_cast.hpp>
 #include <pcl/filters/filter.h>
 
 namespace kinect_fusion
@@ -77,20 +76,23 @@ bool KinectFusion::init(ros::NodeHandle &nh)
   subs_image_raw_.resize(raw_images_topics_.size());
   cb_images_ptr_.resize(raw_images_topics_.size());
   in_images_ptr_.resize(raw_images_topics_.size());
-  image_status_.resize(raw_images_topics_.size(), -1);
+  cb_image_status_.resize(raw_images_topics_.size(), -1);
+  in_image_status_.resize(raw_images_topics_.size(), -1);
   safety_tons_images_.resize(raw_images_topics_.size());
 
   subs_cam_info_.resize(cam_info_topics_.size());
   cb_cam_info_ptr_.resize(cam_info_topics_.size());
   in_cam_info_ptr_.resize(cam_info_topics_.size());
-  cam_info_status_.resize(cam_info_topics_.size(), -1);
+  cb_cam_info_status_.resize(cam_info_topics_.size(), -1);
+  in_cam_info_status_.resize(cam_info_topics_.size(), -1);
   safety_tons_cam_info_.resize(cam_info_topics_.size());
 
   subs_points_.resize(point_topics_.size());
   cb_clouds_ptr_.resize(point_topics_.size());
   in_clouds_ptr_.resize(point_topics_.size());
   transf_clouds_ptr_.resize(point_topics_.size());
-  points_status_= -1;
+  cb_points_status_= -1;
+  in_points_status_= -1;
   safety_tons_points_ = ros::Time::now();
   msg_filters_.resize(point_topics_.size());
   fused_cloud_ptr_.reset(new sensor_msgs::PointCloud2());
@@ -101,7 +103,7 @@ bool KinectFusion::init(ros::NodeHandle &nh)
     cb_images_ptr_[i].reset (new cv_bridge::CvImage());
     in_images_ptr_[i].reset (new cv_bridge::CvImage());
     if (using_aruco_)
-      subs_image_raw_[i] = images_tran_[i].subscribe(raw_images_topics_[i], 1, boost::bind(&KinectFusion::imageCB, this, _1, cb_images_ptr_[i], safety_tons_images_[i], image_status_[i]));
+      subs_image_raw_[i] = images_tran_[i].subscribe(raw_images_topics_[i], 1, boost::bind(&KinectFusion::imageCB, this, _1, cb_images_ptr_[i], safety_tons_images_[i], cb_image_status_[i]));
   }
 
   // Initialize  camera info subsribers and cam_info containers pointers
@@ -109,7 +111,7 @@ bool KinectFusion::init(ros::NodeHandle &nh)
     cb_cam_info_ptr_[i].reset (new sensor_msgs::CameraInfo());
     in_cam_info_ptr_[i].reset (new sensor_msgs::CameraInfo());
     if (using_aruco_)
-      subs_cam_info_[i] = nh_.subscribe<sensor_msgs::CameraInfo>(cam_info_topics_[i], 1, boost::bind(&KinectFusion::cameraInfoCB, this, _1, cb_cam_info_ptr_[i], safety_tons_cam_info_[i], cam_info_status_[i]));
+      subs_cam_info_[i] = nh_.subscribe<sensor_msgs::CameraInfo>(cam_info_topics_[i], 1, boost::bind(&KinectFusion::cameraInfoCB, this, _1, cb_cam_info_ptr_[i], safety_tons_cam_info_[i], cb_cam_info_status_[i]));
   }
 
   // Initialize filters for points topics and cointeiners for transformed pointers
@@ -159,41 +161,44 @@ void KinectFusion::update(const ros::Time& time, const ros::Duration& period)
   if (using_aruco_){
     // Safety timers and mutexes images
     std::lock_guard<std::mutex> guard(image_cb_mutex_);
-    for (size_t i = 0; i< image_status_.size(); i++){
-      if ((ros::Time::now()- safety_tons_images_[i]).toSec()< 2.0 && image_status_[i]> -1){ image_status_[i]; }
-      else if ((ros::Time::now()- safety_tons_images_[i]).toSec()> 2.0 && image_status_[i]> -1){ image_status_[i]= 0; }
-      if ( image_status_[i] == 0) ROS_WARN("Camera's topic[%ld] is not longer available", i);
-      else if (image_status_[i] == -1) ROS_WARN_THROTTLE(5, "Waiting for image's topic");
+    for (size_t i = 0; i< cb_image_status_.size(); i++){
       in_images_ptr_[i] = cb_images_ptr_[i];
+      in_image_status_[i]= cb_image_status_[i];
+      if ((ros::Time::now()- safety_tons_images_[i]).toSec()< 2.0 && in_image_status_[i]> -1){ in_image_status_[i]; }
+      else if ((ros::Time::now()- safety_tons_images_[i]).toSec()> 2.0 && in_image_status_[i]> -1){ in_image_status_[i]= 0; }
+      if ( in_image_status_[i] == 0) ROS_WARN("Camera's topic[%ld] is not longer available", i);
+      else if (in_image_status_[i] == -1) ROS_WARN_THROTTLE(5, "Waiting for image's topic");
     }
   }
 
   if (using_aruco_){
     // Safety timers and mutexes camera info
     std::lock_guard<std::mutex> guard(cam_info_cb_mutex_);
-    for (size_t i = 0; i< cam_info_status_.size(); i++){
-      if ((ros::Time::now()- safety_tons_cam_info_[i]).toSec()< 2.0 && cam_info_status_[i]> -1){ cam_info_status_[i]; }
-      else if ((ros::Time::now()- safety_tons_cam_info_[i]).toSec()> 2.0 && cam_info_status_[i]> -1){ cam_info_status_[i]= 0; }
-      if ( cam_info_status_[i] == 0) ROS_WARN("Camera's info topic[%ld] is not longer available", i);
-      else if (cam_info_status_[i] == -1) ROS_WARN_THROTTLE(5, "Waiting for camera info's topic");
+    for (size_t i = 0; i< in_cam_info_status_.size(); i++){
       in_cam_info_ptr_[i] = cb_cam_info_ptr_[i];
+      in_cam_info_status_[i]= cb_cam_info_status_[i];
+      if ((ros::Time::now()- safety_tons_cam_info_[i]).toSec()< 2.0 && in_cam_info_status_[i]> -1){ in_cam_info_status_[i]; }
+      else if ((ros::Time::now()- safety_tons_cam_info_[i]).toSec()> 2.0 && in_cam_info_status_[i]> -1){ in_cam_info_status_[i]= 0; }
+      if ( in_cam_info_status_[i] == 0) ROS_WARN("Camera's info topic[%ld] is not longer available", i);
+      else if (in_cam_info_status_[i] == -1) ROS_WARN_THROTTLE(5, "Waiting for camera info's topic");
     }
   }
 
   {
     // Safety timer and mutex synchronizer
     std::lock_guard<std::mutex> guard(sync_cb_mutex_);
-    if ((ros::Time::now()- safety_tons_points_).toSec()< 2.0 && points_status_> -1){ points_status_= 1; }
-    else if ((ros::Time::now()- safety_tons_points_).toSec()> 2.0 && points_status_> -1){ points_status_= 0; }
-    if (points_status_ == 0 ) ROS_WARN("Synchronizing is not longer available" );
-    else if (points_status_ == -1) ROS_WARN_THROTTLE(5, "Waiting for synchronizing");
+    in_points_status_= cb_points_status_;
     in_clouds_ptr_ = std::vector<sensor_msgs::PointCloud2ConstPtr>(cb_clouds_ptr_);
+    if ((ros::Time::now()- safety_tons_points_).toSec()< 2.0 && cb_points_status_> -1){ cb_points_status_= 1; }
+    else if ((ros::Time::now()- safety_tons_points_).toSec()> 2.0 && cb_points_status_> -1){ cb_points_status_= 0; }
+    if (cb_points_status_ == 0 ) ROS_WARN("Synchronizing is not longer available" );
+    else if (cb_points_status_ == -1) ROS_WARN_THROTTLE(5, "Waiting for synchronizing");
   }
 
   // Detect aruco marker
   for (size_t i=0; i < in_images_ptr_.size(); i++){
     if(!in_images_ptr_[i]->image.empty() && !in_cam_info_ptr_[i]->D.empty()){
-      markerDetect(in_images_ptr_[i]->image, in_cam_info_ptr_[i], TFs_a_c_[i], aruco_marker_id_, aruco_marker_size_, "Sensor " + boost::lexical_cast<std::string>(i) );
+      markerDetect(in_images_ptr_[i]->image, in_cam_info_ptr_[i], TFs_a_c_[i], aruco_marker_id_, aruco_marker_size_, "Sensor " + std::to_string(i) );
     }
   }
 }
@@ -332,7 +337,7 @@ void KinectFusion::syncPointcloudsCB( const sensor_msgs::PointCloud2ConstPtr &ms
       cb_clouds_ptr_[4] = msg5;
     if (point_topics_.size() > 5)
       cb_clouds_ptr_[5] = msg6;
-    points_status_ = 1;
+    cb_points_status_ = 1;
     safety_tons_points_ = ros::Time::now();
   }
 
