@@ -22,9 +22,9 @@
   </group>
 
   <group if="$(arg using_nodelets)">
-    <node pkg="nodelet" type="nodelet" name="standalone_nodelet"  args="manager" output="screen"/>
+    <node pkg="nodelet" type="nodelet" name="standalone_nodelet_obstacle_detector"  args="manager" output="screen"/>
     <node pkg="nodelet" type="nodelet" name="$(arg base_name)"
-          args="load obstacle_detector/ObstacleDetectorNodelet standalone_nodelet" output="screen">
+          args="load obstacle_detector/ObstacleDetectorNodelet standalone_nodelet_obstacle_detector" output="screen">
         <param name="des_period_sec"    type="double"           value="$(arg des_period_sec)"/>
         <rosparam file="$(find obstacle_detector)/config/hri_parameters.yaml" command="load"/>
         <param name="base_name"         type="str"              value="$(arg base_name)"/>

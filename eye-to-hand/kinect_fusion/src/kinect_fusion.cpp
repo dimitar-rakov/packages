@@ -67,8 +67,6 @@ bool KinectFusion::init(ros::NodeHandle &nh)
     ROS_WARN("Parameter aruco_marker_size was not found. Default value is used: %lf", aruco_marker_size_);
   }
 
-
-
   TFs_w_c.resize(point_topics_.size (), tf::Transform::getIdentity());
   TFs_a_c_.resize(cam_info_topics_.size(), tf::Transform::getIdentity());
 
@@ -78,14 +76,14 @@ bool KinectFusion::init(ros::NodeHandle &nh)
   in_images_ptr_.resize(raw_images_topics_.size());
   cb_image_status_.resize(raw_images_topics_.size(), -1);
   in_image_status_.resize(raw_images_topics_.size(), -1);
-  safety_tons_images_.resize(raw_images_topics_.size());
+  safety_tons_images_.resize(raw_images_topics_.size(), ros::Time::now());
 
   subs_cam_info_.resize(cam_info_topics_.size());
   cb_cam_info_ptr_.resize(cam_info_topics_.size());
   in_cam_info_ptr_.resize(cam_info_topics_.size());
   cb_cam_info_status_.resize(cam_info_topics_.size(), -1);
   in_cam_info_status_.resize(cam_info_topics_.size(), -1);
-  safety_tons_cam_info_.resize(cam_info_topics_.size());
+  safety_tons_cam_info_.resize(cam_info_topics_.size(), ros::Time::now());
 
   subs_points_.resize(point_topics_.size());
   cb_clouds_ptr_.resize(point_topics_.size());

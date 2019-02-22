@@ -20,7 +20,7 @@ bool LWRHWGazebo::init(ros::NodeHandle &nh)
   gazebo::physics::JointPtr joint;
   for(size_t j=0; j < n_joints_; j++)
   {
-    joint = parent_model_ptr->GetJoint(joint_names_[j]);
+    joint = parent_model_ptr_->GetJoint(joint_names_[j]);
     if (!joint)
     {
       std::cout << "This robot has a joint named \"" << joint_names_[j] <<  "\"which is not in the gazebo model.\n";
@@ -104,7 +104,7 @@ void LWRHWGazebo::write(ros::Time time, ros::Duration period)
   }
 }
 
-void LWRHWGazebo::setParentModel(gazebo::physics::ModelPtr parent_model_ptr){parent_model_ptr = parent_model_ptr; parent_set_ = true;}
+void LWRHWGazebo::setParentModel(gazebo::physics::ModelPtr parent_model_ptr){parent_model_ptr_ = parent_model_ptr; parent_set_ = true;}
 
 
 } // namespace

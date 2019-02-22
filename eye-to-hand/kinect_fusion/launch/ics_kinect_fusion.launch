@@ -32,9 +32,9 @@
   </group>
 
   <group if="$(arg using_nodelets)">
-    <node pkg="nodelet" type="nodelet" name="standalone_nodelet"  args="manager" output="screen"/>
+    <node pkg="nodelet" type="nodelet" name="standalone_nodelet_kinect_fusion_ics"  args="manager" output="screen"/>
     <node pkg="nodelet" type="nodelet" name="$(arg base_name)"
-          args="load kinect_fusion/KinectFusionNodelet standalone_nodelet" output="screen">
+          args="load kinect_fusion/KinectFusionNodelet standalone_nodelet_kinect_fusion_ics" output="screen">
         <param name="des_period_sec"        type="double"   value="$(arg des_period_sec)"/>
         <param name="base_name"                 type="str"    value="$(arg base_name)"/>
         <rosparam param="raw_images_topics"     subst_value="True">$(arg raw_images_topics)</rosparam>

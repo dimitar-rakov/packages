@@ -100,9 +100,9 @@ public:
   /**
    * @brief Create allocates mmemory for a new arm
    * @param robot_namespace Robot namespace
-   * @param urdf_path Paths to robot description (xacro)
+   * @param urdf_string Urdf for robot description (xacro)
    */
-  void create(std::string robot_namespace, std::string urdf_path);
+  void create(std::string robot_namespace, std::string urdf_string);
 
   /**
    * @brief prepareSwitch Check if a controller from the start_list can be switched
@@ -196,7 +196,7 @@ protected:
                                                        "_a6_joint"};
 
   /// Urdf model
-  std::unique_ptr <urdf::Model> urdf_model_ptr_;
+  urdf::Model urdf_model_;
 
   /// KDL Solver for gravity effort
   std::unique_ptr <KDL::ChainDynParam> f_dyn_solver_;
@@ -231,8 +231,8 @@ protected:
   /// Joint jerk limits have to be postive values
   std::vector<double> joint_jerk_limits_;
 
-  /// Path to urdf
-  std::string urdf_path_;
+  /// Urdf string with robot model
+  std::string urdf_string_;
 
   /// Transmissions in this plugin's scope
   std::unique_ptr <std::vector<transmission_interface::TransmissionInfo>> transmissions_;
@@ -276,10 +276,10 @@ private:
 
   /**
    * @brief parseTransmissionsFromURDF Get Transmissions from the URDF
-   * @param urdf_path Paths to robot description (xacro)
+   * @param urdf_string Urdf_string of robot description (xacro)
    * @return True by success, otherwise false
    */
-  bool parseTransmissionsFromURDF(const std::string& urdf_path);
+  bool parseTransmissionsFromURDF(const std::string& urdf_string);
 
   /**
    * @brief registerInterfaces Register all interfaces

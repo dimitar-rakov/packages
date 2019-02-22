@@ -3,13 +3,13 @@
 
 namespace lwr_hw
 {
-void LWRHW::create(std::string robot_namespace, std::string urdf_path)
+void LWRHW::create(std::string robot_namespace, std::string urdf_string)
 {
     std::cout << "Creating a KUKA LWR 4 called: " << robot_namespace << std::endl;
 
     // SET NAME AND MODEL
     robot_namespace_ = robot_namespace;
-    urdf_path_ = urdf_path;
+    urdf_string_ = urdf_string;
 
     // ALLOCATE MEMORY
 
@@ -17,6 +17,8 @@ void LWRHW::create(std::string robot_namespace, std::string urdf_path)
     for (size_t j =0 ; j< join_names_sufixes_.size(); j++)
       joint_names_.push_back( robot_namespace_ + join_names_sufixes_[j] );
 
+    transmissions_.reset(new std::vector<transmission_interface::TransmissionInfo> ());
+    lwr_chain_.reset(new KDL::Chain ()) ;
 
     // VARIABLES
     joint_msr_position_.resize(n_joints_);
@@ -44,26 +46,25 @@ void LWRHW::create(std::string robot_namespace, std::string urdf_path)
     std::cout << "Parsing transmissions from the URDF... \n";
 
     // GET TRANSMISSIONS THAT BELONG TO THIS LWR 4 ARM
-    if (!parseTransmissionsFromURDF(urdf_path_))
+    if (!parseTransmissionsFromURDF(urdf_string_))
     {
         std::cout << robot_namespace_ <<": "<< "Error parsing URDF in lwr_hw.\n\n";
         return;
     }
 
-    if (urdf_model_ptr_->initString(urdf_path_))
-    {
-        std::cout << robot_namespace_ <<": "<< "Error initialising model in lwr_hw.\n\n";
-        return;
-    }
+//    if (urdf_model_.initString(urdf_string_))
+//    {
+//        std::cout << robot_namespace_ <<": "<< "Error initialising model in lwr_hw.\n\n";
+//        return;
+//    }
 
     std::cout << "Registering interfaces...\n";
-    registerInterfaces(urdf_model_ptr_.get(), *transmissions_);
-
+    const urdf::Model *const urdf_model_ptr = urdf_model_.initString(urdf_string_) ? &urdf_model_ : NULL;
+    registerInterfaces(urdf_model_ptr, *transmissions_);
     std::cout << "Initializing KDL variables...\n";
 
     // INIT KDL STUFF
-    initKDLdescription(urdf_model_ptr_.get());
-
+    initKDLdescription(urdf_model_ptr);
     std::cout << "Succesfully created an abstract LWR 4 ARM with interfaces to ROS control\n";
 }
 
@@ -254,12 +255,12 @@ void LWRHW::enforceLimits(const ros::Duration &period)
     ej_limits_interface_.enforceLimits(period);
 }
 
-bool LWRHW::parseTransmissionsFromURDF(const std::string& urdf_path)
+bool LWRHW::parseTransmissionsFromURDF(const std::string& urdf_string)
 {
     std::vector<transmission_interface::TransmissionInfo> transmissions;
 
     // Only *standard* transmission_interface are parsed
-    transmission_interface::TransmissionParser::parse(urdf_path, transmissions);
+    transmission_interface::TransmissionParser::parse(urdf_string, transmissions);
 
     // Now iterate and save only transmission from this robot
     for (size_t j = 0; j < n_joints_; ++j)

@@ -54,7 +54,7 @@ public:
 private:
 
   // workaround: simple P controller to overcome the ofsets caused by physical properties of the gazebo model
-  // ToDo for improvement to move this simple controllers in a separate thread with fixed sampling
+  /// {\todo for improvement to move this simple controllers in a separate thread with fixed sampling }
   std::vector<double> joint_cmd_position_add_;
   std::vector<double> joint_cmd_effort_add_;    //Because of specific of gazebo 2 does not work, therefore not used. ToDo test in gazebo > 4
 
@@ -62,7 +62,7 @@ private:
   std::vector<gazebo::physics::JointPtr> sim_joints_;
 
   /// Gazebo physics model
-  gazebo::physics::ModelPtr parent_model_ptr;
+  gazebo::physics::ModelPtr parent_model_ptr_;
 
   /// Indicate whatever the physics model was set
   bool parent_set_ = false;

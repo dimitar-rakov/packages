@@ -19,7 +19,6 @@ VisualFeaturesExtractor::VisualFeaturesExtractor() :it_(nh_)
 bool VisualFeaturesExtractor::init(ros::NodeHandle &nh){
 
   nh_ = nh;
-
   cb_images_ptr_.reset (new cv_bridge::CvImage());
   in_images_ptr_.reset (new cv_bridge::CvImage());
 
@@ -143,14 +142,12 @@ bool VisualFeaturesExtractor::init(ros::NodeHandle &nh){
 
   // Initialize for the case with simulated features
   rect_image_ = cv::Mat::zeros(cam_param_.height, cam_param_.width, CV_8UC3);
-
   cb_image_status_ = -1;
   in_image_status_ = -1;
-  safety_ton_image_.fromSec(-10.0);
+  safety_ton_image_= ros::Time::now();
 
   // ToDo from parameter server
   features_names_ = {"f1", "f2", "f3", "f4"};
-
   //Initializing
   x_.resize(num_extracted_features_);
   y_.resize(num_extracted_features_);
@@ -160,8 +157,8 @@ bool VisualFeaturesExtractor::init(ros::NodeHandle &nh){
   //    TFwsf_.setRotation(tf::createQuaternionFromRPY(M_PI_2,  0,  0));
 
   //sim features wrt to ics world (on bottom)
-      TFwsf_.setOrigin(tf::Vector3( 0.0,  0.65,  0.0));
-      TFwsf_.setRotation(tf::createQuaternionFromRPY( 0.0,  0,  0));
+  //    TFwsf_.setOrigin(tf::Vector3( 0.0,  0.65,  0.0));
+  //    TFwsf_.setRotation(tf::createQuaternionFromRPY( 0.0,  0,  0));
 
   //sim features wrt to ics world (on top)
   //    TFwsf_.setOrigin(tf::Vector3(0.0, 0.65, 2.5));
@@ -176,8 +173,8 @@ bool VisualFeaturesExtractor::init(ros::NodeHandle &nh){
   //    TFwsf_.setRotation(tf::createQuaternionFromRPY(M_PI_2, 0, M_PI_2));
 
   // sim features wrt to hri world  default
-  //  TFwsf_.setOrigin(tf::Vector3( 0.0,  -0.23,  0.78));
-  //  TFwsf_.setRotation(tf::createQuaternionFromRPY(0,  0,  0));
+  TFwsf_.setOrigin(tf::Vector3( 0.0,  -0.23,  0.78));
+  TFwsf_.setRotation(tf::createQuaternionFromRPY(0,  0,  0));
 
 
   //Kept only for test
@@ -192,7 +189,7 @@ bool VisualFeaturesExtractor::init(ros::NodeHandle &nh){
   TFcdf_.setRotation(tf::createQuaternionFromRPY( 0.0,  0.0,  0.0));
   desVisualFeaturesTFs();
 
-  // Initialize  image subsribers
+  // Initialize  image subscribers
   if (!using_sim_features_)
     sub_img_transport_= it_.subscribe(raw_images_topic_, 1, boost::bind(&VisualFeaturesExtractor::imageCB, this, _1, &cb_images_ptr_, &safety_ton_image_, &cb_image_status_));
 

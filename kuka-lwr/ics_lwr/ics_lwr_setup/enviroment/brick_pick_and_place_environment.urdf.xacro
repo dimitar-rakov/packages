@@ -25,26 +25,26 @@
     <link name="world"/>
     
     <!-- table -->
-	<property name="world_origin_x" value="0.0" />
-	<property name="world_origin_y" value="0.0" />
-	<property name="world_origin_z" value="0.0" />
+	<xacro:property name="world_origin_x" value="0.0" />
+	<xacro:property name="world_origin_y" value="0.0" />
+	<xacro:property name="world_origin_z" value="0.0" />
 
 
 	<!-- table properties -->
-	<property name="table_height" value="0.878" />
-	<property name="table_width" value="1.0" />
-	<property name="table_depth" value="0.60" />
-	<property name="table_top_thickness" value="0.018"/>
+	<xacro:property name="table_height" value="0.878" />
+	<xacro:property name="table_width" value="1.0" />
+	<xacro:property name="table_depth" value="0.60" />
+	<xacro:property name="table_top_thickness" value="0.018"/>
 
-	<property name="table_origin_x" value="${world_origin_x + table_width/2}" />
-	<property name="table_origin_y" value="${world_origin_y + table_depth/2}" />
-	<property name="table_origin_z" value="${world_origin_z - table_top_thickness/2}" />
+	<xacro:property name="table_origin_x" value="${world_origin_x + table_width/2}" />
+	<xacro:property name="table_origin_y" value="${world_origin_y + table_depth/2}" />
+	<xacro:property name="table_origin_z" value="${world_origin_z - table_top_thickness/2}" />
 
-	<property name="leg_edge" value="0.04" />
-	<property name="leg_pos_x" value="${leg_edge/2}" />
-	<property name="leg_pos_y" value="${leg_edge/2}" />
-	<property name="leg_height" value="${table_height - table_top_thickness}" />
-	<property name="leg_pos_z" value="${- table_top_thickness/2 - leg_height/2}" />
+	<xacro:property name="leg_edge" value="0.04" />
+	<xacro:property name="leg_pos_x" value="${leg_edge/2}" />
+	<xacro:property name="leg_pos_y" value="${leg_edge/2}" />
+	<xacro:property name="leg_height" value="${table_height - table_top_thickness}" />
+	<xacro:property name="leg_pos_z" value="${- table_top_thickness/2 - leg_height/2}" />
 
 	<material name="table_color">
 		<!-- dark brown -->

@@ -35,11 +35,11 @@ public:
     std::cout << "lwr_hw" << "Loading lwr_hw plugin" << std::endl;
 
     // Save pointers to the model
-    parent_model_ = parent;
-    sdf_ = sdf;
+    parent_model_ptr_ = parent;
+    sdf_ptr = sdf;
 
     // Error message if the model couldn't be found
-    if (!parent_model_)
+    if (!parent_model_ptr_)
     {
       ROS_ERROR_STREAM_NAMED("loadThread","parent model is NULL");
       return;
@@ -54,24 +54,23 @@ public:
     }
 
     // Get namespace for nodehandle
-    if(sdf_->HasElement("robotNamespace"))
-      robot_namespace_ = sdf_->GetElement("robotNamespace")->Get<std::string>();
+    if(sdf_ptr->HasElement("robotNamespace"))
+      robot_namespace_ = sdf_ptr->GetElement("robotNamespace")->Get<std::string>();
     else
-      robot_namespace_ = parent_model_->GetName(); // default
-
+      robot_namespace_ = parent_model_ptr_->GetName(); // default
     // Get robot_description ROS param name
-    if (sdf_->HasElement("robotParam"))
-      robot_description_ = sdf_->GetElement("robotParam")->Get<std::string>();
+    if (sdf_ptr->HasElement("robotParam"))
+      robot_description_ = sdf_ptr->GetElement("robotParam")->Get<std::string>();
     else
       robot_description_ = "robot_description"; // default
 
     // Get the Gazebo simulation period
-    ros::Duration gazebo_period(parent_model_->GetWorld()->GetPhysicsEngine()->GetMaxStepSize());
+    ros::Duration gazebo_period(parent_model_ptr_->GetWorld()->GetPhysicsEngine()->GetMaxStepSize());
 
     // Decide the plugin control period
-    if(sdf_->HasElement("controlPeriod"))
+    if(sdf_ptr->HasElement("controlPeriod"))
     {
-      control_period_ = ros::Duration(sdf_->Get<double>("controlPeriod"));
+      control_period_ = ros::Duration(sdf_ptr->Get<double>("controlPeriod"));
 
       // Check the period against the simulation period
       if( control_period_ < gazebo_period )
@@ -105,7 +104,7 @@ public:
     // Load the LWRHWsim abstraction to interface the controllers with the gazebo model
     robot_hw_sim_.reset( new lwr_hw::LWRHWGazebo() );
     robot_hw_sim_->create(robot_namespace_, urdf_string);
-    robot_hw_sim_->setParentModel(parent_model_);
+    robot_hw_sim_->setParentModel(parent_model_ptr_);
 
     // Set initial joint position from yaml file if exist
     for(size_t j=0; j < robot_hw_sim_->n_joints_; j++)
@@ -141,7 +140,7 @@ public:
   void Update()
   {
     // Get the simulation time and period
-    gazebo::common::Time gz_time_now = parent_model_->GetWorld()->GetSimTime();
+    gazebo::common::Time gz_time_now = parent_model_ptr_->GetWorld()->GetSimTime();
     ros::Time sim_time_ros(gz_time_now.sec, gz_time_now.nsec);
     ros::Duration sim_period = sim_time_ros - last_update_sim_time_ros_;
 
@@ -206,8 +205,8 @@ private:
   }
 
   // Pointer to the model
-  gazebo::physics::ModelPtr parent_model_;
-  sdf::ElementPtr sdf_;
+  gazebo::physics::ModelPtr parent_model_ptr_;
+  sdf::ElementPtr sdf_ptr;
 
   // Pointer to the update event connection
   gazebo::event::ConnectionPtr update_connection_;

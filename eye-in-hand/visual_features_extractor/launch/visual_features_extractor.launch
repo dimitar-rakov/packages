@@ -48,9 +48,9 @@
   </group>
 
   <group if="$(arg using_nodelets)">
-    <node pkg="nodelet" type="nodelet" name="standalone_nodelet"  args="manager" output="screen"/>
+    <node pkg="nodelet" type="nodelet" name="standalone_nodelet_vis_features_extractor"  args="manager" output="screen"/>
     <node pkg="nodelet" type="nodelet" name="$(arg base_name)"
-          args="load visual_features_extractor/VisualFeaturesExtractorNodelet standalone_nodelet" output="screen">
+          args="load visual_features_extractor/VisualFeaturesExtractorNodelet standalone_nodelet_vis_features_extractor" output="screen">
       <param name="des_period_sec"        type="double"   value="$(arg des_period_sec)"/>
       <param name="base_name"                     type="str"    value="$(arg base_name)"/>
       <param name="raw_images_topic"              type="str"    value="$(arg raw_images_topic)"/>
@@ -68,6 +68,6 @@
   </group>
 
   <node pkg="tf2_ros" type="static_transform_publisher" name="cam_to_end_eff" args="0.000 0.000 0.110 0.000 0.000 0.707106781 0.707106781 lwr_a6_link eye_in_hand " />
-
+  <node pkg="tf2_ros" type="static_transform_publisher" name="sf_wrt_world" args="0.000 -0.230 0.780 0.000 0.000 0.000 world sim_features_center " />
 
 </launch>

@@ -23,7 +23,7 @@
 
         <!-- rviz -->
         <group if="$(arg use_rviz)">
-                <node name="lwr_rviz" pkg="rviz" type="rviz" respawn="false" args="-d $(find ics_lwr_launch)/launch/rviz_config.rviz" output="screen"/>
+                <node name="lwr_rviz" pkg="rviz" type="rviz" respawn="false" args="-d $(find hri_lwr_launch)/launch/rviz_config.rviz" output="screen"/>
         </group>
 
 
@@ -31,7 +31,7 @@
         <!-- LAUNCH IMPLEMENTATION -->
 
         <!-- the urdf/sdf parameter -->
-        <param name="robot_description" command="$(find xacro)/xacro.py $(find hri_lwr_setup)/enviroment/$(arg robot_name).urdf.xacro"/>
+        <param name="robot_description" command="$(find xacro)/xacro --inorder $(find hri_lwr_setup)/enviroment/$(arg robot_name).urdf.xacro"/>
 
         <!-- load initial position for the robot -->
         <rosparam file="$(find hri_lwr_setup)/config/load_start_position.yaml" command="load"/>
@@ -75,7 +75,7 @@
         <group ns="lwr">
                 <group if="$(arg lwr_powered)">
                         <!--add a copy of the robot description within the name space -->
-                        <param name="robot_description" command="$(find xacro)/xacro.py $(find hri_lwr_setup)/enviroment/$(arg robot_name).urdf.xacro"/>
+                        <param name="robot_description" command="$(find xacro)/xacro --inorder $(find hri_lwr_setup)/enviroment/$(arg robot_name).urdf.xacro"/>
                         <include file="$(find lwr_hw)/launch/lwr_hw.launch">
                                 <arg name="port" value="$(arg port)"/>
                                 <arg name="ip" value="$(arg ip)"/>
@@ -87,7 +87,7 @@
                 </group>
 
                 <!-- spawn only desired controllers in current namespace -->
-                <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen" args="joint_state_controller $(arg controllers)"/>
-                <node name="controller_stopper" pkg="controller_manager" type="spawner" args="--stopped $(arg stopped_controllers)" />
+                <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen" args="joint_state_controller $(arg controllers) --shutdown-timeout 2"/>
+                <node name="controller_stopper" pkg="controller_manager" type="spawner" args="--stopped $(arg stopped_controllers) --shutdown-timeout 2" />
         </group>
 </launch>
