@@ -1,6 +1,6 @@
 <package format="2">
   <name>obstacle_detector</name>
-  <version>2.0.1</version>
+  <version>2.0.2</version>
   <description>The obstacle detector package</description>
   <maintainer email="dimitar.rakov@gmail.com">Dimitar Rakov</maintainer>
   <license>TODO</license>
