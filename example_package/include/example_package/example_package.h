@@ -24,6 +24,7 @@
 #include <opencv2/highgui/highgui.hpp>
 
 
+
 class ExamplePackage
 {
 public:

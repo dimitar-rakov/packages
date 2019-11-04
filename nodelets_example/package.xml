@@ -1,8 +1,8 @@
 <package format="2">
   <name>nodelets_example</name>
-  <version>0.2.0</version>
+  <version>0.4.0</version>
   <description>The nodelets_example package</description>
-  <maintainer email="dimitar.rakov@tum.de">Dimitar Rakov</maintainer>
+  <maintainer email="dimitar.rakov@gmail.com">Dimitar Rakov</maintainer>
   <license>TODO</license>
   <author>Dimitar Rakov</author>
 
