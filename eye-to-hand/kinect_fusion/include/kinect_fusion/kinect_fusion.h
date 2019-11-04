@@ -10,6 +10,9 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <tf/transform_datatypes.h>
 #include <tf/transform_listener.h>
+#include <message_filters/subscriber.h>
+#include <message_filters/synchronizer.h>
+#include <message_filters/sync_policies/approximate_time.h>
 
 // PCL
 #include <pcl_conversions/pcl_conversions.h>
@@ -24,16 +27,12 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
-#include <aruco/aruco.h>
+#include <opencv2/aruco.hpp>
 
 //Standard Headers
 #include <stdlib.h>
 #include <mutex>
 
-
-#include <message_filters/subscriber.h>
-#include <message_filters/synchronizer.h>
-#include <message_filters/sync_policies/approximate_time.h>
 
 
 namespace kinect_fusion

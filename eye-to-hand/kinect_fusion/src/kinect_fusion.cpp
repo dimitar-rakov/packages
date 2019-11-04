@@ -231,28 +231,28 @@ void KinectFusion::markerDetect(const cv:: Mat& srs_image, const sensor_msgs::Ca
                                 tf::Transform &dstTF, int marker_id, double marker_size, std::string windows_name )
 {
   // initialize camera matrix and distortion coefficients
-  aruco::CameraParameters camera_param;
-  camera_param.CamSize.width = cam_info_ptr ->width;
-  camera_param.CamSize.height = cam_info_ptr ->height;
+//  cv::aruco::CameraParameters camera_param;
+//  camera_param.CamSize.width = cam_info_ptr ->width;
+//  camera_param.CamSize.height = cam_info_ptr ->height;
 
-  camera_param.CameraMatrix = cv::Mat::eye(3, 3, CV_32F);
-  camera_param.CameraMatrix.at<float>(0,0) = cam_info_ptr ->K[0];
-  camera_param.CameraMatrix.at<float>(1,1) = cam_info_ptr ->K[4];
-  camera_param.CameraMatrix.at<float>(0,2) = cam_info_ptr ->K[2];
-  camera_param.CameraMatrix.at<float>(1,2) = cam_info_ptr ->K[5];
+//  camera_param.CameraMatrix = cv::Mat::eye(3, 3, CV_32F);
+//  camera_param.CameraMatrix.at<float>(0,0) = cam_info_ptr ->K[0];
+//  camera_param.CameraMatrix.at<float>(1,1) = cam_info_ptr ->K[4];
+//  camera_param.CameraMatrix.at<float>(0,2) = cam_info_ptr ->K[2];
+//  camera_param.CameraMatrix.at<float>(1,2) = cam_info_ptr ->K[5];
 
-  camera_param.Distorsion = cv::Mat::zeros(1, 5, CV_32F);
-  camera_param.Distorsion.at<float>(0,0) = cam_info_ptr ->D[0];
-  camera_param.Distorsion.at<float>(0,1) = cam_info_ptr ->D[1];
-  camera_param.Distorsion.at<float>(0,2) = cam_info_ptr ->D[2];
-  camera_param.Distorsion.at<float>(0,3) = cam_info_ptr ->D[3];
-  camera_param.Distorsion.at<float>(0,4) = cam_info_ptr ->D[4];
+//  camera_param.Distorsion = cv::Mat::zeros(1, 5, CV_32F);
+//  camera_param.Distorsion.at<float>(0,0) = cam_info_ptr ->D[0];
+//  camera_param.Distorsion.at<float>(0,1) = cam_info_ptr ->D[1];
+//  camera_param.Distorsion.at<float>(0,2) = cam_info_ptr ->D[2];
+//  camera_param.Distorsion.at<float>(0,3) = cam_info_ptr ->D[3];
+//  camera_param.Distorsion.at<float>(0,4) = cam_info_ptr ->D[4];
 
 
   cv::Mat img, R;
   srs_image.copyTo(img);
-  aruco::MarkerDetector marker_detector;
-  std::vector<aruco::Marker> markers;
+//  cv::aruco::MarkerDetector marker_detector;
+//  std::vector<cv::aruco::Marker> markers;
   tf::Transform Trgb_a, Tw_ir, Trgb_ir, Tw_a;
 
   tf::StampedTransform transform;
@@ -283,37 +283,37 @@ void KinectFusion::markerDetect(const cv:: Mat& srs_image, const sensor_msgs::Ca
   }
 
 
-  // detect all markers in an image
-  marker_detector.detect(img, markers, camera_param, marker_size, false);
-  for (int i = 0; i < markers.size(); i++) {
-    markers[i].calculateExtrinsics(marker_size, camera_param);
+//  // detect all markers in an image
+//  marker_detector.detect(img, markers, camera_param, marker_size, false);
+//  for (int i = 0; i < markers.size(); i++) {
+//    markers[i].calculateExtrinsics(marker_size, camera_param);
 
-    cv::Rodrigues(markers[i].Rvec, R);
-    // aruco marker wrt camera
-    Trgb_a.setOrigin(tf::Vector3(markers[i].Tvec.at<float>(0,0), markers[i].Tvec.at<float>(1,0), markers[i].Tvec.at<float>(2,0)));
-    Trgb_a.setBasis( tf::Matrix3x3(R.at<float>(0,0), R.at<float>(0,1), R.at<float>(0,2),
-                                 R.at<float>(1,0), R.at<float>(1,1), R.at<float>(1,2),
-                                 R.at<float>(2,0), R.at<float>(2,1), R.at<float>(2,2)));
-    ROS_INFO("%s. Marker with id: %d. Trgb_a: Position [xyz]: [%lf, %lf, %lf]. Orientation[xyzw]: [%lf, %f, %lf, %lf]",
-             windows_name.c_str(),markers[i].id, Trgb_a.getOrigin().getX(), Trgb_a.getOrigin().getY(), Trgb_a.getOrigin().getZ(),
-             Trgb_a.getRotation().getX(), Trgb_a.getRotation().getY(), Trgb_a.getRotation().getZ(), Trgb_a.getRotation().getW());
+//    cv::Rodrigues(markers[i].Rvec, R);
+//    // aruco marker wrt camera
+//    Trgb_a.setOrigin(tf::Vector3(markers[i].Tvec.at<float>(0,0), markers[i].Tvec.at<float>(1,0), markers[i].Tvec.at<float>(2,0)));
+//    Trgb_a.setBasis( tf::Matrix3x3(R.at<float>(0,0), R.at<float>(0,1), R.at<float>(0,2),
+//                                 R.at<float>(1,0), R.at<float>(1,1), R.at<float>(1,2),
+//                                 R.at<float>(2,0), R.at<float>(2,1), R.at<float>(2,2)));
+//    ROS_INFO("%s. Marker with id: %d. Trgb_a: Position [xyz]: [%lf, %lf, %lf]. Orientation[xyzw]: [%lf, %f, %lf, %lf]",
+//             windows_name.c_str(),markers[i].id, Trgb_a.getOrigin().getX(), Trgb_a.getOrigin().getY(), Trgb_a.getOrigin().getZ(),
+//             Trgb_a.getRotation().getX(), Trgb_a.getRotation().getY(), Trgb_a.getRotation().getZ(), Trgb_a.getRotation().getW());
 
-    dstTF = Trgb_a.inverse();
-    ROS_INFO("%s. Marker with id: %d. Ta_rgb Position [xyz]: [%lf, %lf, %lf]. Orientation[xyzw]: [%lf, %f, %lf, %lf]",
-             windows_name.c_str(),markers[i].id, dstTF.getOrigin().getX(), dstTF.getOrigin().getY(), dstTF.getOrigin().getZ(),
-             dstTF.getRotation().getX(), dstTF.getRotation().getY(), dstTF.getRotation().getZ(), dstTF.getRotation().getW());
+//    dstTF = Trgb_a.inverse();
+//    ROS_INFO("%s. Marker with id: %d. Ta_rgb Position [xyz]: [%lf, %lf, %lf]. Orientation[xyzw]: [%lf, %f, %lf, %lf]",
+//             windows_name.c_str(),markers[i].id, dstTF.getOrigin().getX(), dstTF.getOrigin().getY(), dstTF.getOrigin().getZ(),
+//             dstTF.getRotation().getX(), dstTF.getRotation().getY(), dstTF.getRotation().getZ(), dstTF.getRotation().getW());
 
-    Tw_ir = Tw_a *dstTF * Trgb_ir;
-    ROS_INFO("%s. Marker with id: %d. Tw_ir Position [xyz]: [%lf, %lf, %lf]. Orientation[xyzw]: [%lf, %f, %lf, %lf]",
-             windows_name.c_str(),markers[i].id, Tw_ir.getOrigin().getX(), Tw_ir.getOrigin().getY(), Tw_ir.getOrigin().getZ(),
-             Tw_ir.getRotation().getX(), Tw_ir.getRotation().getY(), Tw_ir.getRotation().getZ(), Tw_ir.getRotation().getW());
+//    Tw_ir = Tw_a *dstTF * Trgb_ir;
+//    ROS_INFO("%s. Marker with id: %d. Tw_ir Position [xyz]: [%lf, %lf, %lf]. Orientation[xyzw]: [%lf, %f, %lf, %lf]",
+//             windows_name.c_str(),markers[i].id, Tw_ir.getOrigin().getX(), Tw_ir.getOrigin().getY(), Tw_ir.getOrigin().getZ(),
+//             Tw_ir.getRotation().getX(), Tw_ir.getRotation().getY(), Tw_ir.getRotation().getZ(), Tw_ir.getRotation().getW());
 
 
-    markers[i].draw(img,cv::Scalar(0,0,255),2);
-  }
+//    markers[i].draw(img,cv::Scalar(0,0,255),2);
+//  }
 
-  cv::imshow(windows_name,img );
-  cv::waitKey(1);
+//  cv::imshow(windows_name,img );
+//  cv::waitKey(1);
 }
 
 void KinectFusion::syncPointcloudsCB( const sensor_msgs::PointCloud2ConstPtr &msg1, const sensor_msgs::PointCloud2ConstPtr &msg2,
