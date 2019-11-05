@@ -1,12 +1,8 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(lwr_hw)
 
-
-add_definitions (-fpermissive -std=c++11)
-set (CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}" )
-
-
-
+add_definitions (-fpermissive -std=c++14)
+add_compile_options(-std=c++14)
 
 #a dummy_target so qtcreator have access to all files
 ######################################################################### 
@@ -21,11 +17,7 @@ add_custom_target(dummy_${PROJECT_NAME} SOURCES ${extra_files})
 
 #########################################################################
 
-
-
 ## Find catkin macros and libraries
-## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
-## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   control_toolbox
   controller_interface
@@ -44,7 +36,6 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   lwr_hw_interfaces
 )
-
 
 
 
@@ -83,63 +74,31 @@ catkin_package(
 
 ##############################################################################
 ## LWR HW BASE CLASS TO RULE'EM ALL
-include_directories(include
-  ${Boost_INCLUDE_DIR}
-  ${catkin_INCLUDE_DIRS}
-)
+include_directories(include  ${Boost_INCLUDE_DIR}  ${catkin_INCLUDE_DIRS})
 
 
-add_library(${PROJECT_NAME}
-  include/${PROJECT_NAME}/lwr_hw.h
-  src/lwr_hw/lwr_hw.cpp
-)
+add_library(${PROJECT_NAME}  include/${PROJECT_NAME}/lwr_hw.h  src/lwr_hw/lwr_hw.cpp)
 
 
-target_link_libraries(${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-)
+target_link_libraries(${PROJECT_NAME}  ${catkin_LIBRARIES})
 
 
 ##############################################################################
 # lwr hw fri class
 
 # REAL KUKA FRI library
-add_library(friremote
-  src/fri/friremote.cpp
-  src/fri/friudp.cpp
-  src/fri/friudp.cpp
-)
-
-add_library(lwr_hw_fri
-  src/lwr_hw/lwr_hw_fri.cpp
-)
-
-add_dependencies(lwr_hw_fri
-  friremote
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-)
-
-target_link_libraries(lwr_hw_fri
-  friremote
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-)
+add_library(friremote  src/fri/friremote.cpp  src/fri/friudp.cpp  src/fri/friudp.cpp)
+add_library(lwr_hw_fri  src/lwr_hw/lwr_hw_fri.cpp)
+add_dependencies(lwr_hw_fri  friremote  ${PROJECT_NAME}  ${catkin_LIBRARIES})
+target_link_libraries(lwr_hw_fri  friremote  ${PROJECT_NAME}  ${catkin_LIBRARIES})
 
 
 
 ##############################################################################
 # lwr hw fri node
-add_executable(lwr_hw_fri_node
-  nodes/lwr_hw_fri_node.cpp
-)
-
-add_dependencies(lwr_hw_fri_node
-  lwr_hw_fri
-)
-target_link_libraries(lwr_hw_fri_node
-  lwr_hw_fri
-)
+add_executable(lwr_hw_fri_node  nodes/lwr_hw_fri_node.cpp)
+add_dependencies(lwr_hw_fri_node  lwr_hw_fri)
+target_link_libraries(lwr_hw_fri_node  lwr_hw_fri)
 
 
 ##############################################################################
@@ -162,36 +121,16 @@ ExternalProject_Add(FRILibrary
 # lwr hw fril class
 include_directories(${CATKIN_DEVEL_PREFIX}/include/fril)
 link_directories(${CATKIN_DEVEL_PREFIX}/lib)
-add_library(lwr_hw_fril
-  src/lwr_hw/lwr_hw_fril.cpp
-)
+add_library(lwr_hw_fril  src/lwr_hw/lwr_hw_fril.cpp)
+add_dependencies(lwr_hw_fril  FRILibrary  ${PROJECT_NAME}  ${catkin_LIBRARIES})
+target_link_libraries(lwr_hw_fril  fril  ${PROJECT_NAME}  ${catkin_LIBRARIES})
 
-add_dependencies(lwr_hw_fril
-  FRILibrary
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-)
-
-target_link_libraries(lwr_hw_fril
-   fril
-  ${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-)
 ##############################################################################
 # lwr hw fril node
 include_directories(${CATKIN_DEVEL_PREFIX}/include/fril)
 link_directories(${CATKIN_DEVEL_PREFIX}/lib)
-
-add_executable(lwr_hw_fril_node
-  nodes/lwr_hw_fril_node.cpp
-)
-
-add_dependencies(lwr_hw_fril_node
-  FRILibrary
-  ${PROJECT_NAME} 
-  lwr_hw_fril
-)
-
+add_executable(lwr_hw_fril_node  nodes/lwr_hw_fril_node.cpp)
+add_dependencies(lwr_hw_fril_node  FRILibrary  ${PROJECT_NAME}   lwr_hw_fril)
 target_link_libraries(lwr_hw_fril_node
   fril
   ${PROJECT_NAME}
@@ -207,12 +146,8 @@ find_package(gazebo REQUIRED)
 include_directories(${GAZEBO_INCLUDE_DIRS})
 link_directories(${GAZEBO_LIBRARY_DIRS})
 
-add_library(lwr_hw_gazebo 
-  src/lwr_hw/lwr_hw_gazebo.cpp
-)
-add_dependencies(lwr_hw_gazebo
-  ${PROJECT_NAME}
-)
+add_library(lwr_hw_gazebo   src/lwr_hw/lwr_hw_gazebo.cpp)
+add_dependencies(lwr_hw_gazebo  ${PROJECT_NAME})
 target_link_libraries(lwr_hw_gazebo
   ${PROJECT_NAME}
   ${catkin_LIBRARIES}
@@ -223,14 +158,8 @@ target_link_libraries(lwr_hw_gazebo
 ##############################################################################
 ## SIMULATION # lwr hw sim gazebo plugin
 
-add_library(lwr_hw_gazebo_plugin
-  nodes/lwr_hw_gazebo_plugin.cpp
-)
-add_dependencies(lwr_hw_gazebo_plugin
-  lwr_hw_gazebo
-  ${PROJECT_NAME}
-
-)
+add_library(lwr_hw_gazebo_plugin  nodes/lwr_hw_gazebo_plugin.cpp)
+add_dependencies(lwr_hw_gazebo_plugin  lwr_hw_gazebo  ${PROJECT_NAME})
 target_link_libraries(lwr_hw_gazebo_plugin
   lwr_hw_gazebo
   ${PROJECT_NAME}

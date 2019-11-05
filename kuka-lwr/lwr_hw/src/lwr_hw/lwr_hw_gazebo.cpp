@@ -39,7 +39,7 @@ void LWRHWGazebo::read(ros::Time time, ros::Duration period)
   {
     joint_msr_position_prev_[j] = joint_msr_position_[j];   
     joint_msr_velocity_prev_[j] = joint_msr_velocity_[j];
-    joint_msr_position_[j] = angles::normalize_angle(sim_joints_[j]->GetAngle(0).Radian());
+    joint_msr_position_[j] = angles::normalize_angle(sim_joints_[j]->Position(0));
     joint_position_kdl_(j) = joint_msr_position_[j];
     // derivate velocity as in the real hardware instead of reading it from simulation
     joint_msr_velocity_[j] = (joint_msr_position_[j] - joint_msr_position_prev_[j])/period.toSec();

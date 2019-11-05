@@ -1,8 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(lwr_hw_interfaces)
 
-add_definitions (-fpermissive -std=c++11)
-set (CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}" )
+add_compile_options(-std=c++14)
 
 #a dummy_target so qtcreator have access to all files
 ######################################################################### 
@@ -29,7 +28,6 @@ find_package(catkin REQUIRED COMPONENTS	roscpp hardware_interface)
 catkin_package(
   INCLUDE_DIRS include
   CATKIN_DEPENDS roscpp hardware_interface
-  DEPENDS system_lib
 )
 
 ###########
@@ -38,7 +36,6 @@ catkin_package(
 
 ## Specify additional locations of header files
 include_directories(include)
-
 
 #############
 ## Install ##

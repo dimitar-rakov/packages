@@ -42,28 +42,24 @@ catkin_package(
 ###########
 
 ## Specify additional locations of header files
-## Your package locations should be listed before other locations
 include_directories(include  ${catkin_INCLUDE_DIRS})
 
 # Declare a C++ library
- add_library(nodelets_example
+ add_library(${PROJECT_NAME}
      src/nodelets_example.cpp
      src/nodelets_example_nodelet.cpp
  )
 
 # Add cmake target dependencies of the library
-# as an example, code may need to be generated before libraries
-# either from message generation or dynamic reconfigure
  add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 # Specify libraries to link a library
- target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES}) # ${OpenCV_LIBS} ${aruco_LIBS}
+ target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
 
 # Declare a C++ executable
  add_executable(${PROJECT_NAME}_node nodes/nodelets_example_node.cpp)
 
 # Add cmake target dependencies of the executable
-# same as for the library above
  add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 # Specify libraries to link an executable target against
