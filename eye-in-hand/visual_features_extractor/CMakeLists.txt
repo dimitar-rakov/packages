@@ -1,8 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(visual_features_extractor)
 
-add_definitions (-fpermissive -std=c++11)
-set (CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}" )
+add_compile_options(-std=c++14)
 set(CMAKE_MODULE_PATH /usr/local/lib/cmake)
 
 #a dummy_target so qtcreator have access to all files
@@ -18,11 +17,7 @@ add_custom_target(dummy_${PROJECT_NAME} SOURCES ${extra_files})
 
 #########################################################################
 
-
-
-## Find catkin macros and libraries
-## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
-## is used, also find other catkin packages
+# Find catkin macros and libraries
 find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   image_transport
@@ -102,13 +97,16 @@ add_library(${PROJECT_NAME}
   src/visual_features_extractor.cpp
   src/visual_features_extractor_nodelet.cpp
   )
+
+# Add cmake target dependencies of the executable
 add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${OpenCV_LIBS} ${aruco_LIBS})
 
 # Declare a C++ executable
  add_executable(${PROJECT_NAME}_node nodes/visual_features_extractor_node.cpp)
 
-## Add cmake target dependencies of the executable, same as for the library above
+# Add cmake target dependencies of the executable, same as for the library above
  add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 # Specify libraries to link a library or executable target against

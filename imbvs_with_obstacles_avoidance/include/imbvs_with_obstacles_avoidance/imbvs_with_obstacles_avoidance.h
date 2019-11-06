@@ -25,6 +25,7 @@
 #include <kdl_parser/kdl_parser.hpp>
 
 #include <boost/scoped_ptr.hpp>
+#include <memory>
 #include <mutex>
 
 // TF

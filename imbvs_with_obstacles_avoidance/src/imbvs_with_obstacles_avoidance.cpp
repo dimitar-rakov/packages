@@ -530,8 +530,8 @@ bool ImbvsWithObstaclesAvoidance::getParameters(){
   joint_number_  = kdl_chain_.getNrOfSegments();
 
   // Parsing joint limits from urdf model along kdl chain
-  boost::shared_ptr<const urdf::Link> link = model.getLink(tip_name_);
-  boost::shared_ptr<const urdf::Joint> joint;
+  std::shared_ptr<const urdf::Link> link = model.getLink(tip_name_);
+  std::shared_ptr<const urdf::Joint> joint;
   joint_limits_.min.resize(joint_number_);
   joint_limits_.max.resize(joint_number_);
   joint_limits_.center.resize(joint_number_);

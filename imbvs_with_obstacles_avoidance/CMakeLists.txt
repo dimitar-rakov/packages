@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(imbvs_with_obstacles_avoidance)
-add_definitions (-fpermissive -std=c++11)
-set (CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}" )
+
+add_compile_options(-std=c++14)
 
 #a dummy_target so qtcreator have access to all files
 ######################################################################### 
@@ -31,6 +31,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf_conversions
 )
 
+## Specify additional locations of header files
 include_directories(include ${Boost_INCLUDE_DIR} ${catkin_INCLUDE_DIRS})
 
 link_directories(${catkin_LIBRARY_DIRS})
@@ -70,26 +71,23 @@ catkin_package(
   LIBRARIES ${PROJECT_NAME}
 )
 
-add_library(${PROJECT_NAME}
-  src/imbvs_with_obstacles_avoidance.cpp
-)
+# Declare a C++ library
+ add_library(${PROJECT_NAME}  src/imbvs_with_obstacles_avoidance.cpp)
 
-add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencpp)
+# Add cmake target dependencies of the library
+ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencpp)
 
-target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
+# Specify libraries to link a library target against
+ target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
 
 # Declare a C++ executable
  add_executable(${PROJECT_NAME}_node nodes/imbvs_with_obstacles_avoidance_node.cpp)
 
 # Add cmake target dependencies of the executable
-# same as for the library above
  add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-# Specify libraries to link a library or executable target against
- target_link_libraries(${PROJECT_NAME}_node
-   ${PROJECT_NAME}
-   ${catkin_LIBRARIES}
- )
+# Specify libraries to link an executable target against
+ target_link_libraries(${PROJECT_NAME}_node   ${PROJECT_NAME}  ${catkin_LIBRARIES})
 
 
 install(TARGETS ${PROJECT_NAME}

@@ -53,7 +53,7 @@ include_directories(include  ${catkin_INCLUDE_DIRS})
 # Add cmake target dependencies of the library
  add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-# Specify libraries to link a library
+# Specify libraries to link a library target against
  target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
 
 # Declare a C++ executable
