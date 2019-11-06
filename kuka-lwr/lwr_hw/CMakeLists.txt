@@ -122,7 +122,9 @@ ExternalProject_Add(FRILibrary
 include_directories(${CATKIN_DEVEL_PREFIX}/include/fril)
 link_directories(${CATKIN_DEVEL_PREFIX}/lib)
 add_library(lwr_hw_fril  src/lwr_hw/lwr_hw_fril.cpp)
-add_dependencies(lwr_hw_fril  FRILibrary  ${PROJECT_NAME}  ${catkin_LIBRARIES})
+add_dependencies(lwr_hw_fril
+  FRILibrary  ${PROJECT_NAME}
+  ${catkin_LIBRARIES})
 target_link_libraries(lwr_hw_fril  fril  ${PROJECT_NAME}  ${catkin_LIBRARIES})
 
 ##############################################################################
@@ -151,7 +153,7 @@ add_dependencies(lwr_hw_gazebo  ${PROJECT_NAME})
 target_link_libraries(lwr_hw_gazebo
   ${PROJECT_NAME}
   ${catkin_LIBRARIES}
-  ${GAZEBO_LIBRARIES}
+  #${GAZEBO_LIBRARIES}
 )
 
 
@@ -164,7 +166,7 @@ target_link_libraries(lwr_hw_gazebo_plugin
   lwr_hw_gazebo
   ${PROJECT_NAME}
   ${catkin_LIBRARIES}
-  ${GAZEBO_LIBRARIES}
+  #${GAZEBO_LIBRARIES}
 )
 
 ##############################################################################
