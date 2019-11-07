@@ -145,7 +145,7 @@ private:
   bool using_aruco_ ;
 
   /// Size of aruco marker in meters  (from parameter server)
-  double aruco_marker_size_;
+  float aruco_marker_size_;
 
   /// Aruco marler id (not used) (from parameter server)
   int aruco_marker_id_;
@@ -203,7 +203,7 @@ private:
    * @param windows_name Input window name for imshow()
    */
   void markerDetect(const cv:: Mat& srs_image, const sensor_msgs::CameraInfoConstPtr &cam_info_ptr,
-                    tf::Transform &dstTF, int marker_id, double marker_size, std::string windows_name );
+                    tf::Transform &dstTF, int marker_id, float marker_size, std::string windows_name );
 
   /**
    * @brief imageCB Callback function to images raw topic
