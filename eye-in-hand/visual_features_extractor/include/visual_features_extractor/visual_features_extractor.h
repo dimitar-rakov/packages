@@ -23,16 +23,13 @@
 
 //OpenCV headers
 #include <opencv2/core/core.hpp>
+#include <opencv2/aruco.hpp>
 
 //Pthread Headers
 #include <mutex>
 
 //Eigen
 #include <eigen3/Eigen/Dense>
-
-//Aruco headers
-#include <aruco/aruco.h>
-
 
 /**
  * @brief The VisualFeaturesExtractor class
@@ -227,9 +224,6 @@ private:
   /// Container for  image, used show image  function
   cv::Mat drawing_image_;
 
-  /// Aruco camera parameters
-  aruco::CameraParameters aruco_cam_params_;
-
   /// Work features coordinates in image space
   std::vector< cv::Point2d> work_features_coord_;
 
@@ -304,25 +298,25 @@ private:
                          std::vector<std::string> &dst_found_features_names);
 
   /**
-   * @brief findArucoMarkers Find aruco markers
+   * @brief findArucoCorners Find aruco markers
    * @param srs_image Input image used for aruco extraction
-   * @param dst_markers Output destination container for found markers
+   * @param dst_corners Output destination container for found corners
    * @param founded_features_names Output destination container for found features names
    */
-  void findArucoMarkers(const cv::Mat &srs_image,
-                        std::vector<aruco::Marker>  &dst_markers,
+  void findArucoCorners(const cv::Mat &srs_image,
+                        std::vector<std::vector<cv::Point2f> > &dst_corners,
                         std::vector<std::string> &founded_features_names);
 
   /**
    * @brief showAll Visualisation of found contours or aruco markers
    * @param srs_image Input image used for visualization
    * @param src_contours Input countours
-   * @param srs_markers Input aruco markers
+   * @param srs_corners Input aruco corners
    * @param src_coord Input features coordinates
    * @param founded_features_names Output destination container for found features names
    */
   void showAll(const cv::Mat &srs_image, const std::vector<std::vector<cv::Point> > &src_contours,
-               const std::vector<aruco::Marker>  &srs_markers,
+               const std::vector<std::vector<cv::Point2f> > &src_corners,
                const std::vector<cv::Point2d> &src_coord,
                const std::vector<std::string> &founded_features_names);
 

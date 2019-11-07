@@ -40,9 +40,6 @@ add_definitions(${EIGEN_DEFINITIONS})
 # OpenCV
 find_package(OpenCV REQUIRED)
 
-# Aruco
-#SET(CMAKE_MODULE_PATH /home/dimitar/Downloads/aruco-1.3.0/build )
-find_package(aruco REQUIRED)
 
 ##############################################################################
 
@@ -81,7 +78,6 @@ catkin_package(
   INCLUDE_DIRS include
   LIBRARIES 
   CATKIN_DEPENDS cv_bridge image_transport message_runtime roscpp tf tf_conversions std_msgs std_srvs geometry_msgs nodelet pluginlib
-  DEPENDS system_lib
 )
 
 ###########
@@ -89,19 +85,15 @@ catkin_package(
 ###########
 
 ## Specify additional locations of header files
-## Your package locations should be listed before other locations
  include_directories(include ${catkin_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIR} ${aruco_INCLUDE_DIRS})
 
 # Declare a C++ library
-add_library(${PROJECT_NAME}
-  src/visual_features_extractor.cpp
-  src/visual_features_extractor_nodelet.cpp
-  )
+ add_library(${PROJECT_NAME} src/visual_features_extractor.cpp  src/visual_features_extractor_nodelet.cpp )
 
 # Add cmake target dependencies of the executable
-add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+ add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${OpenCV_LIBS} ${aruco_LIBS})
+ target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${OpenCV_LIBS} ${aruco_LIBS})
 
 # Declare a C++ executable
  add_executable(${PROJECT_NAME}_node nodes/visual_features_extractor_node.cpp)

@@ -119,27 +119,6 @@ bool VisualFeaturesExtractor::init(ros::NodeHandle &nh){
     return false;
   }
 
-  // Get camera parameter from parameter server
-  if(!getCameraParameter(nh_, camera_name_, cam_param_))
-    return false;
-  else{
-    aruco_cam_params_.CamSize.width = cam_param_.width;
-    aruco_cam_params_.CamSize.height = cam_param_.height;
-
-    aruco_cam_params_.CameraMatrix = cv::Mat::eye(3, 3, CV_32F);
-    aruco_cam_params_.CameraMatrix.at<float>(0,0) = cam_param_.K[0];
-    aruco_cam_params_.CameraMatrix.at<float>(1,1) = cam_param_.K[4];
-    aruco_cam_params_.CameraMatrix.at<float>(0,2) = cam_param_.K[2];
-    aruco_cam_params_.CameraMatrix.at<float>(1,2) = cam_param_.K[5];
-
-    aruco_cam_params_.Distorsion = cv::Mat::zeros(1, 5, CV_32F);
-    aruco_cam_params_.Distorsion.at<float>(0,0) = cam_param_.D[0];
-    aruco_cam_params_.Distorsion.at<float>(0,1) = cam_param_.D[1];
-    aruco_cam_params_.Distorsion.at<float>(0,2) = cam_param_.D[2];
-    aruco_cam_params_.Distorsion.at<float>(0,3) = cam_param_.D[3];
-    aruco_cam_params_.Distorsion.at<float>(0,4) = cam_param_.D[4];
-  }
-
   // Initialize for the case with simulated features
   rect_image_ = cv::Mat::zeros(cam_param_.height, cam_param_.width, CV_8UC3);
   cb_image_status_ = -1;
@@ -217,7 +196,7 @@ void VisualFeaturesExtractor::update(const ros::Time& time, const ros::Duration&
     std::lock_guard<std::mutex> guard(image_cb_mutex_);
     in_image_status_ = cb_image_status_;
     in_images_ptr_ = cb_images_ptr_;
-    if ((ros::Time::now()- safety_ton_image_).toSec()< 2.0 && in_image_status_> -1){ in_image_status_; }
+    if ((ros::Time::now()- safety_ton_image_).toSec()< 2.0 && in_image_status_> -1){ in_image_status_ = in_image_status_; }
     else if ((ros::Time::now()- safety_ton_image_).toSec()> 2.0 && in_image_status_> -1){ in_image_status_= 0; }
     if (in_image_status_ == 0 && !using_sim_features_) ROS_WARN("Image's topic is not longer available");
     else if (in_image_status_ == -1 && !using_sim_features_) ROS_WARN_THROTTLE(5, "Waiting for image's topic");
@@ -232,7 +211,8 @@ void VisualFeaturesExtractor::update(const ros::Time& time, const ros::Duration&
     std::vector<cv::Point2d> features_coord;
     std::vector<std::vector<cv::Point> > contours;
     std::vector<std::string> founded_features_names;
-    std::vector<aruco::Marker>  markers;
+    std::vector<std::vector<cv::Point2f> > corners;
+
     if (in_image_status_ ==1 && !using_sim_features_){
       tic = ros::Time::now();
       // Rectify the image
@@ -259,11 +239,11 @@ void VisualFeaturesExtractor::update(const ros::Time& time, const ros::Duration&
         ROS_DEBUG_STREAM ("Real features:" << stream.str() );
       }
       else{
-        findArucoMarkers (in_images_ptr_->image , markers, founded_features_names);
+        findArucoCorners (in_images_ptr_->image , corners, founded_features_names);
         std::stringstream stream;
-        for (size_t i = 0; i< markers.size(); i++){
+        for (size_t i = 0; i< corners.size(); i++){
           // find the center of the marker
-          cv::Point2d fc = markers[i][0] + markers[i][1] + markers[i][2] + markers[i][3];
+          cv::Point2d fc = corners[i][0] + corners[i][1] + corners[i][2] + corners[i][3];
           fc = cv::Point2d(fc.x/4.0, fc.y/4.0);
           if (fc.x < cam_param_.width && fc.y < cam_param_.height){
             features_coord.push_back(fc);
@@ -357,7 +337,7 @@ void VisualFeaturesExtractor::update(const ros::Time& time, const ros::Duration&
 
     // Calculation for measured feature (real/sim)
     feature_data_msg_ptr->is_valid_msr_feature = calcFeaturesParameters(work_features_coord_);
-    showAll(rect_image_, contours, markers, work_features_coord_, founded_features_names );
+    showAll(rect_image_, contours, corners, work_features_coord_, founded_features_names );
     if (feature_data_msg_ptr->is_valid_msr_feature){
       // Calculate angle between horizontal axis and
       msr_angle_ = atan2((work_features_coord_[0].y - work_features_coord_[idx_max_dist_].y),
@@ -453,8 +433,9 @@ bool VisualFeaturesExtractor:: setDesiredTemplate(visual_features_extractor::Set
   tf::Transform TFcdf;
   std::vector<cv::Point2d> features_coord;
   std::vector<std::vector<cv::Point> > contours;
-  std::vector<std::string> founded_features_names;
-  std::vector<aruco::Marker>  markers;
+  std::vector<std::string> founded_features_names; 
+  std::vector<std::vector<cv::Point2f> > corners;
+
   if (in_image_status_ ==1 && !using_sim_features_){
     if (using_colored_blobs_ ){
       findBlobsContours(rect_image_ , contours, founded_features_names);
@@ -466,10 +447,10 @@ bool VisualFeaturesExtractor:: setDesiredTemplate(visual_features_extractor::Set
       }
     }
     else {
-      findArucoMarkers (in_images_ptr_->image , markers, founded_features_names);
-      for (size_t i = 0; i< markers.size(); i++){
+      findArucoCorners (in_images_ptr_->image , corners, founded_features_names);
+      for (size_t i = 0; i< corners.size(); i++){
         // find the center of the marker
-        cv::Point2d fc = markers[i][0] + markers[i][1] + markers[i][2] + markers[i][3];
+        cv::Point2d fc = corners[i][0] + corners[i][1] + corners[i][2] + corners[i][3];
         fc = cv::Point2d(fc.x/4, fc.y/4);
         features_coord.push_back(fc);
         std::cout << founded_features_names[i]<< " ["<<fc.x<<"  " <<fc.y<<"]   ";
@@ -681,24 +662,29 @@ void VisualFeaturesExtractor::findBlobsContours(const cv::Mat &srs_image,
   }
 }
 
-void VisualFeaturesExtractor::findArucoMarkers( const cv::Mat &srs_image,
-                                                std::vector<aruco::Marker>  &dst_markers,
+void VisualFeaturesExtractor::findArucoCorners(const cv::Mat &srs_image,
+                                                std::vector<std::vector<cv::Point2f> > &dst_corners,
                                                 std::vector<std::string> &founded_features_names)
 {
 
   cv::Mat img;
   srs_image.copyTo(img);
-  std::vector<aruco::Marker>  markers;
-  aruco::MarkerDetector marker_detector;
-  dst_markers.clear();
+  dst_corners.clear();
   founded_features_names.clear();
-  marker_detector.detect(img, markers);
+  std::vector<std::vector<cv::Point2f> > corners;
+
+  // detect all markers in an image
+  cv::aruco::Dictionary dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_5X5_250);
+  std::vector<int> ids;
+  cv::aruco::detectMarkers(img, &dictionary, corners, ids);
+
+
   // marker_detector.detect(img, markers, aruco_cam_params_, arucos_size[0], false);
   for (size_t i = 0; i < arucos_id.size(); i++) {
-    for (size_t j = 0; j <  markers.size(); j++){
-      if (arucos_id[i] == markers[j].id){
+    for (size_t j = 0; j <  ids.size(); j++){ //ToDo find
+      if (arucos_id[i] == ids[j]){
         founded_features_names.push_back(features_names_[i]);
-        dst_markers.push_back(markers[j]);
+        dst_corners.push_back(corners[j]);
       }
     }
   }
@@ -706,7 +692,7 @@ void VisualFeaturesExtractor::findArucoMarkers( const cv::Mat &srs_image,
 
 void VisualFeaturesExtractor::showAll(const cv::Mat &srs_image,
                                       const std::vector<std::vector<cv::Point> > &src_contours,
-                                      const std::vector<aruco::Marker> &srs_markers,
+                                      const std::vector<std::vector<cv::Point2f> > &src_corners,
                                       const std::vector<cv::Point2d> &src_coord,
                                       const std::vector<std::string> &founded_features_names)
 {
@@ -715,12 +701,12 @@ void VisualFeaturesExtractor::showAll(const cv::Mat &srs_image,
   std::vector<cv::Point2d> mc;
 
   if (!using_sim_features_){
+    if (!using_colored_blobs_ && src_corners.size() > 0)
+      cv::aruco::drawDetectedMarkers(drawing_image_, src_corners);
     mc = src_coord;
     for( size_t i = 0; i< mc.size(); i++ ){
       if (using_colored_blobs_)
         cv::drawContours( drawing_image_, src_contours, i, cv::Scalar(0,0,255), 2);
-      else
-        srs_markers[i].draw(drawing_image_,cv::Scalar(0,0,255),2);
       cv::line(drawing_image_, cv::Point2d (mc[i].x-10, mc[i].y+10), cv::Point2d (mc[i].x+10, mc[i].y-10), cv::Scalar(0,0,255),2);
       cv::line(drawing_image_, cv::Point2d (mc[i].x+10, mc[i].y+10), cv::Point2d (mc[i].x-10, mc[i].y-10), cv::Scalar(0,0,255),2);
       cv::putText(drawing_image_, founded_features_names[i], mc[i],  cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255,0,255), 1 );
