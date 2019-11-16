@@ -24,8 +24,7 @@ namespace visual_features_extractor
 
       // resolve node(let) name
       std::string name = nh.getUnresolvedNamespace();
-      int pos = name.find_last_of('/');
-      name = name.substr(pos + 1);
+      name = name.substr(name.find_last_of('/') + 1);
 
       NODELET_INFO_STREAM("Initialising nodelet... [" << name << "]");
       visual_features_extractor_ptr_.reset(new VisualFeaturesExtractor());

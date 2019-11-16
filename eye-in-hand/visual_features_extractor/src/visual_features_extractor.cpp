@@ -119,6 +119,10 @@ bool VisualFeaturesExtractor::init(ros::NodeHandle &nh){
     return false;
   }
 
+  // Get camera parameter from parameter server
+    if(!getCameraParameter(nh_, camera_name_, cam_param_))
+      return false;
+
   // Initialize for the case with simulated features
   rect_image_ = cv::Mat::zeros(cam_param_.height, cam_param_.width, CV_8UC3);
   cb_image_status_ = -1;
@@ -206,6 +210,7 @@ void VisualFeaturesExtractor::update(const ros::Time& time, const ros::Duration&
   visual_features_extractor::VisFeature::Ptr feature_data_msg_ptr(new visual_features_extractor::VisFeature()) ;
 
   if (getTFs()){
+
     ros::Time tic = ros::Time::now();
     calcFeaturesImageCoord();
     std::vector<cv::Point2d> features_coord;
@@ -243,7 +248,10 @@ void VisualFeaturesExtractor::update(const ros::Time& time, const ros::Duration&
         std::stringstream stream;
         for (size_t i = 0; i< corners.size(); i++){
           // find the center of the marker
+          ROS_INFO ("OK2.5");
           cv::Point2d fc = corners[i][0] + corners[i][1] + corners[i][2] + corners[i][3];
+
+                      ROS_INFO ("OK3.0");
           fc = cv::Point2d(fc.x/4.0, fc.y/4.0);
           if (fc.x < cam_param_.width && fc.y < cam_param_.height){
             features_coord.push_back(fc);
@@ -338,6 +346,7 @@ void VisualFeaturesExtractor::update(const ros::Time& time, const ros::Duration&
     // Calculation for measured feature (real/sim)
     feature_data_msg_ptr->is_valid_msr_feature = calcFeaturesParameters(work_features_coord_);
     showAll(rect_image_, contours, corners, work_features_coord_, founded_features_names );
+
     if (feature_data_msg_ptr->is_valid_msr_feature){
       // Calculate angle between horizontal axis and
       msr_angle_ = atan2((work_features_coord_[0].y - work_features_coord_[idx_max_dist_].y),
@@ -666,20 +675,15 @@ void VisualFeaturesExtractor::findArucoCorners(const cv::Mat &srs_image,
                                                 std::vector<std::vector<cv::Point2f> > &dst_corners,
                                                 std::vector<std::string> &founded_features_names)
 {
-
-  cv::Mat img;
-  srs_image.copyTo(img);
   dst_corners.clear();
   founded_features_names.clear();
   std::vector<std::vector<cv::Point2f> > corners;
 
   // detect all markers in an image
-  cv::aruco::Dictionary dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_5X5_250);
+  cv::Ptr<cv::aruco::Dictionary> dictionary_ptr = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_250);
   std::vector<int> ids;
-  cv::aruco::detectMarkers(img, &dictionary, corners, ids);
+  cv::aruco::detectMarkers(srs_image,  dictionary_ptr, corners, ids);
 
-
-  // marker_detector.detect(img, markers, aruco_cam_params_, arucos_size[0], false);
   for (size_t i = 0; i < arucos_id.size(); i++) {
     for (size_t j = 0; j <  ids.size(); j++){ //ToDo find
       if (arucos_id[i] == ids[j]){
@@ -728,7 +732,8 @@ void VisualFeaturesExtractor::showAll(const cv::Mat &srs_image,
     cv::putText(drawing_image_, features_names_[i], mc[i],  cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255,0,255), 1 );
   }
 
-  if (!mask_image_.empty())   cv::imshow( "mask", mask_image_ );
+  if (!mask_image_.empty())
+    cv::imshow( "mask", mask_image_ );
 
   ///ToDo remove
   //    double v1x = xg_ + m02_/2 + mu20_/2 - sqrt(m02_*m02_ - 2*m02_*mu20_ + mu20_*mu20_ + 4*m11_*mu11_)/2;
@@ -741,7 +746,8 @@ void VisualFeaturesExtractor::showAll(const cv::Mat &srs_image,
   //    cv::line(drawing_image_, cv::Point2d (sxg, syg), cv::Point2d (sv1x, sv1y), cv::Scalar(255,255,0),2);
 
 
-  cv::imshow( "Contours and features centers", drawing_image_ );
+  if (!drawing_image_.empty())
+    cv::imshow( "Contours and features centers", drawing_image_ );
   cv::waitKey(1);
 }
 

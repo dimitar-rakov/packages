@@ -29,7 +29,6 @@ bool LWRHWGazebo::init(ros::NodeHandle &nh)
     sim_joints_.push_back(joint);
     sim_joints_[j]->SetPosition(0, joint_cmd_position_[j]);
   }
-
   return true;
 }
 

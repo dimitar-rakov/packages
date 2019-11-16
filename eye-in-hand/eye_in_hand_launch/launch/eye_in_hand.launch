@@ -1,8 +1,8 @@
 <launch>
   <node name="usb_cam" pkg="usb_cam" type="usb_cam_node" output="screen" >
     <param name="video_device" value="/dev/video0" />
-    <param name="image_width" value="640" />
-    <param name="image_height" value="480" />
+    <param name="image_width" value="800" />
+    <param name="image_height" value="600" />
     <param name="pixel_format" value="yuyv" />
     <param name="camera_frame_id" value="usb_cam" />
     <param name="io_method" value="mmap"/>
@@ -12,9 +12,17 @@
  <!--    <param name="autosize" value="true" /> -->
  <!--  </node> -->
 
-  <node name="vis_feature_extract" pkg="vis_feature_extract" type="vis_feature_extract_node" respawn="false" output="screen">
-    <param name="sim_features" value="true" />
-    <param name="extended_features" value="false" />
+  <node name="visual_features_extractor" pkg="visual_features_extractor" type="visual_features_extractor_node" respawn="false" output="screen">
+    <param name="des_period_sec"                type="double" value="0.10"/>
+    <param name="base_name"                     type="str"    value="visual_fetures_extractor"/>
+    <param name="raw_images_topic"              type="str"    value="/usb_cam/image_raw"/>
+    <param name="camera_name"                   type="str"    value="usb_cam"/>
+    <param name="using_sim_features"            type="bool"   value="false"/>
+    <param name="using_extended_features"       type="bool"   value="true"/>
+    <param name="using_symmetrical_features"    type="bool"   value="true"/>
+    <param name="extended_features_var"         type="double" value="1.2"/>
+    <param name="using_colored_blobs"           type="bool"   value="false"/>
+    <param name="contour_area_threshold"        type="double" value="25"/>
   </node>
 
   <node pkg="tf2_ros" type="static_transform_publisher" name="cam_to_end_eff" args="0.000 0.000 0.095 0.000 0.000 0.707106781 0.707106781 lwr_a6_link eye_in_hand " />

@@ -264,10 +264,10 @@ void KinectFusion::markerDetect(const cv:: Mat& srs_image, const sensor_msgs::Ca
   srs_image.copyTo(img);
 
   // detect all markers in an
-  cv::aruco::Dictionary dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_5X5_250);
+  cv::Ptr<cv::aruco::Dictionary> dictionary_ptr = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_5X5_250);
   std::vector<int> ids;
   std::vector<std::vector<cv::Point2f> > corners;
-  cv::aruco::detectMarkers(img, &dictionary, corners, ids);
+  cv::aruco::detectMarkers(img, dictionary_ptr, corners, ids);
 
   // initialize camera matrix and distortion coefficients
   cv::Mat cameraMatrix = cv::Mat::eye(3, 3, CV_64F);
